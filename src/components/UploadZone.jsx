@@ -165,7 +165,7 @@ export default function UploadZone({ onAnalyze }) {
                 className="text-xs px-3 py-1 rounded-full"
                 style={{
                   background: 'rgba(255,255,255,0.04)',
-                  color: '#52525b',
+                  color: '#adadad',
                   border: '1px solid rgba(255,255,255,0.07)',
                 }}
               >
@@ -186,7 +186,7 @@ export default function UploadZone({ onAnalyze }) {
 
       {/* Tip */}
       <motion.p
-        className="mt-4 text-center text-xs text-zinc-600 flex items-center justify-center gap-1.5"
+        className="mt-4 text-center text-xs text-silver-600 flex items-center justify-center gap-1.5"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
