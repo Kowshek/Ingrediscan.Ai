@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 function UploadIcon() {
   return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="17 8 12 3 7 8" />
       <line x1="12" y1="3" x2="12" y2="15" />
@@ -13,7 +13,7 @@ function UploadIcon() {
 
 function ScanIcon() {
   return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 7V5a2 2 0 0 1 2-2h2" />
       <path d="M17 3h2a2 2 0 0 1 2 2v2" />
       <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
@@ -23,11 +23,21 @@ function ScanIcon() {
   );
 }
 
+function CameraIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+
 const HINT_TAGS = ['Food labels', 'Skincare', 'Supplements', 'Snacks', 'Beverages'];
 
 export default function UploadZone({ onAnalyze }) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef(null);
+  const cameraRef = useRef(null);
 
   const handleFile = useCallback(
     (file) => {
@@ -74,8 +84,47 @@ export default function UploadZone({ onAnalyze }) {
       exit={{ opacity: 0, y: -16, scale: 0.98 }}
       transition={{ duration: 0.35 }}
     >
+      {/* ── Camera button — PRIMARY on mobile, hidden on desktop ── */}
+      <div className="md:hidden mb-3">
+        <motion.button
+          className="w-full flex items-center justify-center gap-3 rounded-2xl font-semibold text-base"
+          style={{
+            background: 'rgba(45,212,191,0.1)',
+            border: '1.5px solid rgba(45,212,191,0.28)',
+            color: '#2dd4bf',
+            minHeight: '56px',
+            padding: '0 24px',
+            cursor: 'pointer',
+          }}
+          onClick={() => cameraRef.current?.click()}
+          whileHover={{ background: 'rgba(45,212,191,0.17)' }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ duration: 0.15 }}
+        >
+          <CameraIcon />
+          Open Camera
+        </motion.button>
+        {/* Rear-camera input — separate from gallery input */}
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleChange}
+        />
+      </div>
+
+      {/* ── "or" divider — mobile only ── */}
+      <div className="md:hidden flex items-center gap-3 mb-3">
+        <div className="flex-1" style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+        <span className="text-xs" style={{ color: '#3f3f46' }}>or choose from gallery</span>
+        <div className="flex-1" style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+      </div>
+
+      {/* ── Upload / drag-drop zone ── */}
       <motion.div
-        className="relative overflow-hidden rounded-3xl cursor-pointer select-none"
+        className="relative overflow-hidden rounded-3xl cursor-pointer select-none w-full"
         style={{
           background: dragging
             ? 'rgba(45, 212, 191, 0.04)'
@@ -124,10 +173,11 @@ export default function UploadZone({ onAnalyze }) {
           )}
         </AnimatePresence>
 
-        <div className="relative flex flex-col items-center justify-center px-8 py-20 gap-7">
+        {/* Inner content */}
+        <div className="relative flex flex-col items-center justify-center px-6 py-10 md:px-8 md:py-20 gap-5 md:gap-7">
           {/* Icon */}
           <motion.div
-            className="w-20 h-20 rounded-2xl flex items-center justify-center transition-colors duration-300"
+            className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center transition-colors duration-300"
             style={{
               background: dragging ? 'rgba(45,212,191,0.12)' : 'rgba(255,255,255,0.04)',
               border: `1px solid ${dragging ? 'rgba(45,212,191,0.3)' : 'rgba(255,255,255,0.07)'}`,
@@ -142,14 +192,14 @@ export default function UploadZone({ onAnalyze }) {
           {/* Text */}
           <div className="text-center space-y-2">
             <motion.p
-              className="text-xl font-semibold"
+              className="text-lg md:text-xl font-semibold"
               style={{ color: dragging ? '#2dd4bf' : '#f4f4f5' }}
               transition={{ duration: 0.2 }}
             >
               {dragging ? 'Release to scan' : 'Upload ingredient photo'}
             </motion.p>
             <p className="text-zinc-500 text-sm">
-              Drag & drop or{' '}
+              Drag &amp; drop or{' '}
               <span className="text-zinc-400 underline underline-offset-2 decoration-dotted">
                 click to browse
               </span>{' '}
@@ -157,16 +207,19 @@ export default function UploadZone({ onAnalyze }) {
             </p>
           </div>
 
-          {/* Tag hints */}
+          {/* Category pills */}
           <div className="flex flex-wrap gap-2 justify-center">
             {HINT_TAGS.map((tag) => (
               <span
                 key={tag}
-                className="text-xs px-3 py-1 rounded-full"
+                className="text-xs px-3 rounded-full"
                 style={{
                   background: 'rgba(255,255,255,0.04)',
                   color: '#adadad',
                   border: '1px solid rgba(255,255,255,0.07)',
+                  minHeight: '28px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
                 }}
               >
                 {tag}
@@ -175,6 +228,7 @@ export default function UploadZone({ onAnalyze }) {
           </div>
         </div>
 
+        {/* Gallery / file input */}
         <input
           ref={inputRef}
           type="file"
@@ -186,14 +240,16 @@ export default function UploadZone({ onAnalyze }) {
 
       {/* Tip */}
       <motion.p
-        className="mt-4 text-center text-xs text-silver-600 flex items-center justify-center gap-1.5"
+        className="mt-5 px-4 text-center text-xs flex items-center justify-center gap-1.5"
+        style={{ color: '#a0a0a0' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-          <circle cx="12" cy="13" r="4" />
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
         Ensure ingredient text is clear and well-lit for best results
       </motion.p>

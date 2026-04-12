@@ -179,17 +179,17 @@ export default function App() {
     >
       {/* Ambient glow at top */}
       <div
-        className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] pointer-events-none"
+        className="fixed top-0 left-0 right-0 h-[300px] pointer-events-none"
         style={{
           background:
             'radial-gradient(ellipse at 50% 0%, rgba(45,212,191,0.07) 0%, transparent 70%)',
         }}
       />
 
-      <div className="relative max-w-2xl mx-auto px-4 py-10 pb-24">
+      <div className="relative max-w-2xl mx-auto px-4 pt-8 pb-24 md:pt-10">
         {/* Header */}
         <motion.header
-          className="mb-12 text-center"
+          className="mb-8 md:mb-12 text-center"
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45 }}

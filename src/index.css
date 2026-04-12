@@ -19,6 +19,13 @@ body {
 #root {
   min-height: 100svh;
   width: 100%;
+  overflow-x: hidden;
+}
+
+/* Prevent horizontal overflow on narrow viewports */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 ::-webkit-scrollbar {
