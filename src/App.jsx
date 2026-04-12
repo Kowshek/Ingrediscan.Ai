@@ -1,0 +1,243 @@
+import { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import UploadZone from './components/UploadZone';
+import Results from './components/Results';
+import { analyzeIngredients } from './utils/analyzeImage';
+import './App.css';
+
+// ── Loading state ──────────────────────────────────────────────────────────
+function LoadingState({ imagePreview }) {
+  return (
+    <motion.div
+      key="loading"
+      className="flex flex-col items-center gap-10 py-16"
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.3 }}
+    >
+      {imagePreview && (
+        <div className="relative w-44 h-44">
+          <img
+            src={imagePreview}
+            alt="Scanning"
+            className="w-full h-full object-cover rounded-2xl"
+            style={{
+              filter: 'brightness(0.45) saturate(0.4)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+          />
+          {/* Scan line */}
+          <motion.div
+            className="absolute left-0 right-0 h-px pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent 0%, #2dd4bf 50%, transparent 100%)',
+              boxShadow: '0 0 10px 1px #2dd4bf88',
+            }}
+            animate={{ top: ['8%', '92%', '8%'] }}
+            transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          {/* Corner brackets */}
+          {[
+            'top-2 left-2 border-l-2 border-t-2',
+            'top-2 right-2 border-r-2 border-t-2',
+            'bottom-2 left-2 border-l-2 border-b-2',
+            'bottom-2 right-2 border-r-2 border-b-2',
+          ].map((cls, i) => (
+            <div
+              key={i}
+              className={`absolute w-5 h-5 border-teal-400 ${cls}`}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="text-center space-y-2">
+        <motion.p
+          className="text-lg font-semibold text-zinc-100"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          Analyzing ingredients...
+        </motion.p>
+        <p className="text-zinc-600 text-sm">AI is reading your product label</p>
+      </div>
+
+      {/* Dot loader */}
+      <div className="flex gap-2">
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            className="w-1.5 h-1.5 rounded-full bg-teal-400"
+            animate={{ scale: [1, 1.6, 1], opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.22 }}
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Error state ────────────────────────────────────────────────────────────
+function ErrorState({ error, onRetry }) {
+  return (
+    <motion.div
+      key="error"
+      className="flex flex-col items-center gap-6 py-16 text-center"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div
+        className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl"
+        style={{
+          background: 'rgba(239,68,68,0.08)',
+          border: '1px solid rgba(239,68,68,0.2)',
+        }}
+      >
+        ⚠
+      </div>
+      <div className="space-y-2 max-w-sm">
+        <p className="text-zinc-100 font-semibold text-lg">Analysis Failed</p>
+        <p className="text-zinc-500 text-sm leading-relaxed">{error}</p>
+      </div>
+      <motion.button
+        onClick={onRetry}
+        className="px-6 py-3 rounded-xl text-zinc-200 font-medium text-sm cursor-pointer transition-colors"
+        style={{
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.1)',
+        }}
+        whileHover={{ background: 'rgba(255,255,255,0.09)' }}
+        whileTap={{ scale: 0.97 }}
+      >
+        Try Again
+      </motion.button>
+    </motion.div>
+  );
+}
+
+// ── Logo ───────────────────────────────────────────────────────────────────
+function Logo() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+      <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+      <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+      <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+      <circle cx="12" cy="12" r="3" />
+      <line x1="12" y1="9" x2="12" y2="3" />
+      <line x1="15" y1="12" x2="21" y2="12" />
+      <line x1="12" y1="15" x2="12" y2="21" />
+      <line x1="9" y1="12" x2="3" y2="12" />
+    </svg>
+  );
+}
+
+// ── App ────────────────────────────────────────────────────────────────────
+export default function App() {
+  const [phase, setPhase] = useState('idle'); // idle | loading | result | error
+  const [result, setResult] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleAnalyze = useCallback(async (file) => {
+    const url = URL.createObjectURL(file);
+    setImagePreview(url);
+    setPhase('loading');
+    setError(null);
+
+    try {
+      const data = await analyzeIngredients(file);
+      setResult(data);
+      setPhase('result');
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Please try again.');
+      setPhase('error');
+    }
+  }, []);
+
+  const reset = useCallback(() => {
+    setPhase('idle');
+    setResult(null);
+    setError(null);
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
+    }
+  }, [imagePreview]);
+
+  return (
+    <div
+      className="min-h-screen"
+      style={{
+        background: '#08090a',
+        fontFamily: "'Space Grotesk', system-ui, sans-serif",
+      }}
+    >
+      {/* Ambient glow at top */}
+      <div
+        className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse at 50% 0%, rgba(45,212,191,0.07) 0%, transparent 70%)',
+        }}
+      />
+
+      <div className="relative max-w-2xl mx-auto px-4 py-10 pb-24">
+        {/* Header */}
+        <motion.header
+          className="mb-12 text-center"
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+        >
+          <div className="flex items-center justify-center gap-2.5 mb-2.5">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{
+                background: 'rgba(45,212,191,0.1)',
+                border: '1px solid rgba(45,212,191,0.2)',
+                color: '#2dd4bf',
+              }}
+            >
+              <Logo />
+            </div>
+            <h1
+              className="text-2xl font-bold tracking-tight"
+              style={{ color: '#f4f4f5' }}
+            >
+              IngrediScan
+            </h1>
+          </div>
+          <p className="text-sm" style={{ color: '#52525b' }}>
+            Know what&apos;s really in your products
+          </p>
+        </motion.header>
+
+        {/* Content */}
+        <AnimatePresence mode="wait">
+          {phase === 'idle' && (
+            <UploadZone key="upload" onAnalyze={handleAnalyze} />
+          )}
+          {phase === 'loading' && (
+            <LoadingState key="loading" imagePreview={imagePreview} />
+          )}
+          {phase === 'result' && (
+            <Results
+              key="result"
+              result={result}
+              imagePreview={imagePreview}
+              onReset={reset}
+            />
+          )}
+          {phase === 'error' && (
+            <ErrorState key="error" error={error} onRetry={reset} />
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
