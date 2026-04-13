@@ -32,7 +32,7 @@ function CameraIcon() {
   );
 }
 
-const HINT_TAGS = ['Food labels', 'Skincare', 'Supplements', 'Snacks', 'Beverages'];
+const HINT_TAGS = ['Food labels', 'Skincare', 'Snacks', 'Beverages'];
 
 export default function UploadZone({ onAnalyze }) {
   const [dragging, setDragging] = useState(false);
@@ -203,7 +203,7 @@ export default function UploadZone({ onAnalyze }) {
               <span className="text-zinc-400 underline underline-offset-2 decoration-dotted">
                 click to browse
               </span>{' '}
-              · JPG, PNG, WEBP
+              &middot; JPG, PNG, WEBP
             </p>
           </div>
 

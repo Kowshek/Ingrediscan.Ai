@@ -3,15 +3,13 @@ import Anthropic from '@anthropic-ai/sdk';
 const PROMPT = `You are an ingredient safety expert. Analyze these product ingredients and respond ONLY in this exact JSON format:
 {
   "score": number (1-10, 10 being safest),
-  "verdict": "string (one line summary)",
   "ingredients": [
     {
       "name": "string",
       "status": "harmful" | "decent" | "safe",
-      "reason": "string (one line why)"
+      "reason": "string (one short sentence max 10 words explaining the concern)"
     }
-  ],
-  "alternatives": ["string"] (3 generic safer product type suggestions, no brand names)
+  ]
 }
 If the image does not show ingredient text clearly, return: {"error": "Image unclear or no ingredient list visible. Please try a closer, well-lit photo."}`;
 
