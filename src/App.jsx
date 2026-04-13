@@ -174,7 +174,7 @@ export default function App() {
       className="min-h-screen"
       style={{
         background: '#08090a',
-        fontFamily: "'Space Grotesk', system-ui, sans-serif",
+        fontFamily: "'DM Sans', system-ui, sans-serif",
       }}
     >
       {/* Ambient glow at top */}
@@ -196,7 +196,7 @@ export default function App() {
         >
           <div className="flex items-center justify-center gap-2.5 mb-2.5">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center"
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
               style={{
                 background: 'rgba(45,212,191,0.1)',
                 border: '1px solid rgba(45,212,191,0.2)',
@@ -206,13 +206,16 @@ export default function App() {
               <Logo />
             </div>
             <h1
-              className="text-2xl font-bold tracking-tight"
-              style={{ color: '#f4f4f5' }}
+              className="font-bold tracking-tight"
+              style={{
+                color: '#f4f4f5',
+                fontSize: 'clamp(1.2rem, 5vw, 1.5rem)',
+              }}
             >
-              IngrediScan
+              IngrediScan.Ai
             </h1>
           </div>
-          <p className="text-sm" style={{ color: '#52525b' }}>
+          <p className="text-sm" style={{ color: '#9c9c9c' }}>
             Know what&apos;s really in your products
           </p>
         </motion.header>
@@ -229,7 +232,6 @@ export default function App() {
             <Results
               key="result"
               result={result}
-              imagePreview={imagePreview}
               onReset={reset}
             />
           )}

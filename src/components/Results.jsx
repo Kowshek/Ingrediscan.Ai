@@ -4,29 +4,29 @@ import ScoreCircle from './ScoreCircle';
 const STATUS_MAP = {
   harmful: {
     label: 'Harmful',
-    dotCls: 'bg-red-400',
+    dotCls: 'bg-red-500',
     badgeStyle: {
-      background: 'rgba(239,68,68,0.1)',
-      color: '#f87171',
-      border: '1px solid rgba(239,68,68,0.2)',
+      background: 'rgba(255,68,68,0.12)',
+      color: '#FF4444',
+      border: '1px solid rgba(255,68,68,0.25)',
     },
   },
   decent: {
     label: 'Moderate',
-    dotCls: 'bg-orange-400',
+    dotCls: 'bg-amber-400',
     badgeStyle: {
-      background: 'rgba(249,115,22,0.1)',
-      color: '#fb923c',
-      border: '1px solid rgba(249,115,22,0.2)',
+      background: 'rgba(255,179,71,0.12)',
+      color: '#FFB347',
+      border: '1px solid rgba(255,179,71,0.25)',
     },
   },
   safe: {
     label: 'Safe',
     dotCls: 'bg-emerald-400',
     badgeStyle: {
-      background: 'rgba(34,197,94,0.1)',
-      color: '#4ade80',
-      border: '1px solid rgba(34,197,94,0.2)',
+      background: 'rgba(74,222,128,0.1)',
+      color: '#4ADE80',
+      border: '1px solid rgba(74,222,128,0.2)',
     },
   },
 };
@@ -69,13 +69,14 @@ function SectionLabel({ children }) {
   );
 }
 
-export default function Results({ result, imagePreview, onReset }) {
-  const { score, verdict, ingredients = [], alternatives = [] } = result;
+export default function Results({ result, onReset }) {
+  const { score, ingredients = [] } = result;
 
   const harmful = ingredients.filter((i) => i.status === 'harmful');
-  const decent = ingredients.filter((i) => i.status === 'decent');
-  const safe = ingredients.filter((i) => i.status === 'safe');
-  const sorted = [...harmful, ...decent, ...safe];
+  const decent  = ingredients.filter((i) => i.status === 'decent');
+  const safe    = ingredients.filter((i) => i.status === 'safe');
+  const problematic = [...harmful, ...decent];
+  const allSafe = problematic.length === 0;
 
   return (
     <motion.div
@@ -90,84 +91,86 @@ export default function Results({ result, imagePreview, onReset }) {
         <div className="flex flex-col sm:flex-row items-center gap-8">
           <ScoreCircle score={score} />
 
-          <div className="flex-1 text-center sm:text-left space-y-3">
+          <div className="flex-1 min-w-0 text-center sm:text-left space-y-3">
             <SectionLabel>Safety Verdict</SectionLabel>
-            <motion.p
-              className="text-zinc-100 text-xl font-semibold leading-snug"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-            >
-              {verdict}
-            </motion.p>
 
-            {/* Stat pills */}
+            {/* Score breakdown pills */}
             <motion.div
               className="flex flex-wrap gap-2 justify-center sm:justify-start"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
+              transition={{ delay: 0.6 }}
             >
-              {harmful.length > 0 && (
-                <span
-                  className="text-xs px-3 py-1 rounded-full font-medium"
-                  style={STATUS_MAP.harmful.badgeStyle}
-                >
-                  {harmful.length} harmful
-                </span>
-              )}
-              {decent.length > 0 && (
-                <span
-                  className="text-xs px-3 py-1 rounded-full font-medium"
-                  style={STATUS_MAP.decent.badgeStyle}
-                >
-                  {decent.length} moderate
-                </span>
-              )}
-              {safe.length > 0 && (
-                <span
-                  className="text-xs px-3 py-1 rounded-full font-medium"
-                  style={STATUS_MAP.safe.badgeStyle}
-                >
-                  {safe.length} safe
-                </span>
-              )}
+              <span
+                className="rounded-full font-medium"
+                style={{
+                  fontSize: '13px',
+                  padding: '6px 14px',
+                  background: 'rgba(248,113,113,0.2)',
+                  color: '#F87171',
+                  border: '1px solid rgba(248,113,113,0.4)',
+                }}
+              >
+                🔴 {harmful.length} Harmful
+              </span>
+              <span
+                className="rounded-full font-medium"
+                style={{
+                  fontSize: '13px',
+                  padding: '6px 14px',
+                  background: 'rgba(251,146,60,0.2)',
+                  color: '#FB923C',
+                  border: '1px solid rgba(251,146,60,0.4)',
+                }}
+              >
+                🟠 {decent.length} Moderate
+              </span>
+              <span
+                className="rounded-full font-medium"
+                style={{
+                  fontSize: '13px',
+                  padding: '6px 14px',
+                  background: 'rgba(74,222,128,0.2)',
+                  color: '#4ADE80',
+                  border: '1px solid rgba(74,222,128,0.4)',
+                }}
+              >
+                🟢 {safe.length} Safe
+              </span>
             </motion.div>
           </div>
-
-          {/* Thumbnail */}
-          {imagePreview && (
-            <motion.div
-              className="shrink-0"
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
-            >
-              <img
-                src={imagePreview}
-                alt="Scanned product"
-                className="w-24 h-24 rounded-2xl object-cover"
-                style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-              />
-            </motion.div>
-          )}
         </div>
       </SectionCard>
 
-      {/* Ingredients */}
-      {sorted.length > 0 && (
-        <SectionCard delay={0.15}>
-          <SectionLabel>
-            Ingredients Analysis &middot; {sorted.length} identified
-          </SectionLabel>
+      {/* Ingredients to Watch */}
+      <SectionCard delay={0.15}>
+        <SectionLabel>Ingredients to Watch</SectionLabel>
+
+        {allSafe ? (
+          <motion.div
+            className="flex items-center gap-3 px-3 py-3 rounded-xl"
+            style={{
+              background: 'rgba(34,197,94,0.06)',
+              border: '1px solid rgba(34,197,94,0.15)',
+            }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <span style={{ color: '#4ADE80', fontSize: '15px' }}>✓</span>
+            <p className="text-sm font-medium" style={{ color: '#4ADE80' }}>
+              No concerning ingredients found. This product looks clean.
+            </p>
+          </motion.div>
+        ) : (
           <motion.div
             className="space-y-1"
             variants={listVariants}
             initial="hidden"
             animate="visible"
           >
-            {sorted.map((ing, i) => {
-              const s = STATUS_MAP[ing.status] || STATUS_MAP.safe;
+            {problematic.map((ing, i) => {
+              const s = STATUS_MAP[ing.status] || STATUS_MAP.decent;
               return (
                 <motion.div
                   key={`${ing.name}-${i}`}
@@ -179,18 +182,21 @@ export default function Results({ result, imagePreview, onReset }) {
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium text-zinc-100">
+                      <span
+                        className="font-semibold text-zinc-100"
+                        style={{ fontSize: '16px', wordBreak: 'break-word' }}
+                      >
                         {ing.name}
                       </span>
                       <span
-                        className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
                         style={s.badgeStyle}
                       >
                         {s.label}
                       </span>
                     </div>
                     {ing.reason && (
-                      <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">
+                      <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
                         {ing.reason}
                       </p>
                     )}
@@ -199,48 +205,8 @@ export default function Results({ result, imagePreview, onReset }) {
               );
             })}
           </motion.div>
-        </SectionCard>
-      )}
-
-      {/* Alternatives */}
-      {alternatives.length > 0 && (
-        <SectionCard delay={0.3}>
-          <SectionLabel>Safer Alternatives</SectionLabel>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {alternatives.map((alt, i) => (
-              <motion.div
-                key={i}
-                className="flex items-center gap-3 p-4 rounded-2xl"
-                style={{
-                  background: 'rgba(45,212,191,0.04)',
-                  border: '1px solid rgba(45,212,191,0.12)',
-                }}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45 + i * 0.1 }}
-                whileHover={{
-                  borderColor: 'rgba(45,212,191,0.28)',
-                  background: 'rgba(45,212,191,0.07)',
-                  transition: { duration: 0.15 },
-                }}
-              >
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold"
-                  style={{
-                    background: 'rgba(45,212,191,0.12)',
-                    color: '#2dd4bf',
-                  }}
-                >
-                  {i + 1}
-                </div>
-                <span className="text-zinc-300 text-sm font-medium leading-snug">
-                  {alt}
-                </span>
-              </motion.div>
-            ))}
-          </div>
-        </SectionCard>
-      )}
+        )}
+      </SectionCard>
 
       {/* Reset button */}
       <motion.button
