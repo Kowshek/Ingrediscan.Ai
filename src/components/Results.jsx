@@ -11,7 +11,7 @@ const STATUS_MAP = {
       border: '1px solid rgba(255,68,68,0.25)',
     },
   },
-  decent: {
+  moderate: {
     label: 'Moderate',
     dotCls: 'bg-amber-400',
     badgeStyle: {
@@ -27,6 +27,57 @@ const STATUS_MAP = {
       background: 'rgba(74,222,128,0.1)',
       color: '#4ADE80',
       border: '1px solid rgba(74,222,128,0.2)',
+    },
+  },
+};
+
+const CONCERN_MAP = {
+  carcinogen: {
+    label: 'Carcinogen',
+    style: {
+      background: 'rgba(239,68,68,0.12)',
+      color: '#EF4444',
+      border: '1px solid rgba(239,68,68,0.25)',
+    },
+  },
+  allergen: {
+    label: 'Allergen',
+    style: {
+      background: 'rgba(245,158,11,0.12)',
+      color: '#F59E0B',
+      border: '1px solid rgba(245,158,11,0.25)',
+    },
+  },
+  irritant: {
+    label: 'Irritant',
+    style: {
+      background: 'rgba(249,115,22,0.12)',
+      color: '#F97316',
+      border: '1px solid rgba(249,115,22,0.25)',
+    },
+  },
+  endocrine_disruptor: {
+    label: 'Endocrine Disruptor',
+    style: {
+      background: 'rgba(168,85,247,0.12)',
+      color: '#A855F7',
+      border: '1px solid rgba(168,85,247,0.25)',
+    },
+  },
+  banned_substance: {
+    label: 'Banned',
+    style: {
+      background: 'rgba(220,38,38,0.12)',
+      color: '#DC2626',
+      border: '1px solid rgba(220,38,38,0.25)',
+    },
+  },
+  frequent_use_concern: {
+    label: 'Regular Use Risk',
+    style: {
+      background: 'rgba(255,179,71,0.12)',
+      color: '#FFB347',
+      border: '1px solid rgba(255,179,71,0.25)',
     },
   },
 };
@@ -70,12 +121,17 @@ function SectionLabel({ children }) {
 }
 
 export default function Results({ result, onReset }) {
-  const { score, ingredients = [] } = result;
+  const {
+    score,
+    ingredients = [],
+    score_rationale,
+    low_confidence_warning,
+  } = result;
 
-  const harmful = ingredients.filter((i) => i.status === 'harmful');
-  const decent  = ingredients.filter((i) => i.status === 'decent');
-  const safe    = ingredients.filter((i) => i.status === 'safe');
-  const problematic = [...harmful, ...decent];
+  const harmful    = ingredients.filter((i) => i.status === 'harmful');
+  const moderate   = ingredients.filter((i) => i.status === 'moderate');
+  const safe       = ingredients.filter((i) => i.status === 'safe');
+  const problematic = [...harmful, ...moderate];
   const allSafe = problematic.length === 0;
 
   return (
@@ -86,6 +142,25 @@ export default function Results({ result, onReset }) {
       exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.3 }}
     >
+      {/* Low confidence warning banner */}
+      {low_confidence_warning && (
+        <motion.div
+          className="rounded-3xl px-6 py-5 flex items-start gap-3"
+          style={{
+            background: 'rgba(251,191,36,0.08)',
+            border: '1px solid rgba(251,191,36,0.22)',
+          }}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0 }}
+        >
+          <span style={{ fontSize: '16px', marginTop: '1px', flexShrink: 0 }}>⚠️</span>
+          <p className="text-sm leading-relaxed" style={{ color: '#FCD34D' }}>
+            {low_confidence_warning}
+          </p>
+        </motion.div>
+      )}
+
       {/* Score + Verdict card */}
       <SectionCard delay={0}>
         <div className="flex flex-col sm:flex-row items-center gap-8">
@@ -123,7 +198,7 @@ export default function Results({ result, onReset }) {
                   border: '1px solid rgba(251,146,60,0.4)',
                 }}
               >
-                🟠 {decent.length} Moderate
+                🟠 {moderate.length} Moderate
               </span>
               <span
                 className="rounded-full font-medium"
@@ -138,6 +213,13 @@ export default function Results({ result, onReset }) {
                 🟢 {safe.length} Safe
               </span>
             </motion.div>
+
+            {/* Score rationale */}
+            {score_rationale && (
+              <p className="text-xs text-zinc-500 mt-2 leading-relaxed text-center sm:text-left">
+                {score_rationale}
+              </p>
+            )}
           </div>
         </div>
       </SectionCard>
@@ -170,7 +252,10 @@ export default function Results({ result, onReset }) {
             animate="visible"
           >
             {problematic.map((ing, i) => {
-              const s = STATUS_MAP[ing.status] || STATUS_MAP.decent;
+              const s = STATUS_MAP[ing.status] || STATUS_MAP.moderate;
+              const concern = ing.concern_type && ing.concern_type !== 'none'
+                ? CONCERN_MAP[ing.concern_type] ?? null
+                : null;
               return (
                 <motion.div
                   key={`${ing.name}-${i}`}
@@ -194,6 +279,14 @@ export default function Results({ result, onReset }) {
                       >
                         {s.label}
                       </span>
+                      {concern && (
+                        <span
+                          className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
+                          style={concern.style}
+                        >
+                          {concern.label}
+                        </span>
+                      )}
                     </div>
                     {ing.reason && (
                       <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
@@ -207,6 +300,11 @@ export default function Results({ result, onReset }) {
           </motion.div>
         )}
       </SectionCard>
+
+      {/* Disclaimer */}
+      <p className="text-xs text-zinc-600 text-center px-2">
+        AI analysis is for reference only — not medical advice.
+      </p>
 
       {/* Reset button */}
       <motion.button
