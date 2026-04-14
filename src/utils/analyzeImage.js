@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import Anthropic from "@anthropic-ai/sdk";
 
 const PROMPT = `You are an ingredient safety expert specializing in consumer products sold in India — food, skincare, haircare, and household items.
 
@@ -51,19 +51,21 @@ Scoring guide:
 10: No concerns identified
 
 Rules:
-- If text is in Hindi, Tamil, or another Indian language: attempt analysis, set confidence to "medium" or "low" accordingly
+- If the ingredient list is not in English or is not legible: return {"error": "Unable to read ingredient list. Please take a closer, well-lit photo of the ingredients panel."}
 - If ingredient list appears truncated or cut off at edges: set low_confidence_warning
 - Do NOT guess product name
 - Do NOT include ingredients not visible in the image
-- ONLY return JSON — no preamble, no explanation outside the object`;
-
+- ONLY return JSON — no preamble, no explanation outside the object
+- INS numbers (Indian additive codes): flag INS 102 (tartrazine), INS 110 (sunset yellow), INS 124 (ponceau 4R), INS 211 (sodium benzoate), INS 621 (MSG) as moderate with concern_type allergen or frequent_use_concern as appropriate
+- "Parfum" or "Fragrance" in skincare: always flag as moderate, allergen — contains undisclosed compounds, common sensitizer
+- Refined palm oil, palm kernel oil, palmolein — all variants of palm oil, flag as frequent_use_concern`
 
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = () => reject(new Error("Failed to read image file"));
     reader.readAsDataURL(file);
   });
 }
@@ -71,7 +73,9 @@ function fileToBase64(file) {
 export async function analyzeIngredients(imageFile) {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
   if (!apiKey) {
-    throw new Error('No API key configured. Add VITE_ANTHROPIC_API_KEY to your .env file.');
+    throw new Error(
+      "No API key configured. Add VITE_ANTHROPIC_API_KEY to your .env file.",
+    );
   }
 
   const client = new Anthropic({
@@ -81,25 +85,25 @@ export async function analyzeIngredients(imageFile) {
 
   const base64 = await fileToBase64(imageFile);
 
-  const mediaType = imageFile.type || 'image/jpeg';
+  const mediaType = imageFile.type || "image/jpeg";
 
   const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     messages: [
       {
-        role: 'user',
+        role: "user",
         content: [
           {
-            type: 'image',
+            type: "image",
             source: {
-              type: 'base64',
+              type: "base64",
               media_type: mediaType,
               data: base64,
             },
           },
           {
-            type: 'text',
+            type: "text",
             text: PROMPT,
           },
         ],
@@ -107,29 +111,34 @@ export async function analyzeIngredients(imageFile) {
     ],
   });
 
-  const text = response.content[0]?.text ?? '';
+  const text = response.content[0]?.text ?? "";
 
   // Strip markdown code fences if present
-  const cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+  const cleaned = text
+    .replace(/```(?:json)?\s*/gi, "")
+    .replace(/```/g, "")
+    .trim();
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
 
   if (!jsonMatch) {
-    throw new Error('Could not parse AI response. Please try again.');
+    throw new Error("Could not parse AI response. Please try again.");
   }
 
   let parsed;
   try {
     parsed = JSON.parse(jsonMatch[0]);
   } catch {
-    throw new Error('Invalid response format. Please try again.');
+    throw new Error("Invalid response format. Please try again.");
   }
 
   if (parsed.error) {
     throw new Error(parsed.error);
   }
 
-  if (typeof parsed.score !== 'number' || !Array.isArray(parsed.ingredients)) {
-    throw new Error('Incomplete analysis returned. Try a clearer photo of the ingredient list.');
+  if (typeof parsed.score !== "number" || !Array.isArray(parsed.ingredients)) {
+    throw new Error(
+      "Incomplete analysis returned. Try a clearer photo of the ingredient list.",
+    );
   }
 
   return parsed;

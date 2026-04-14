@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UploadZone from './components/UploadZone';
 import Results from './components/Results';
+import LimitReached from './components/LimitReached';
 import { analyzeIngredients } from './utils/analyzeImage';
 import './App.css';
 
@@ -138,12 +139,20 @@ function Logo() {
 
 // ── App ────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [phase, setPhase] = useState('idle'); // idle | loading | result | error
+  const [phase, setPhase] = useState('idle'); // idle | loading | result | error | limit
   const [result, setResult] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [error, setError] = useState(null);
+  const [scanCount, setScanCount] = useState(() =>
+    parseInt(localStorage.getItem('ingrediscan_scan_count') || '0', 10)
+  );
 
   const handleAnalyze = useCallback(async (file) => {
+    if (scanCount >= 3) {
+      setPhase('limit');
+      return;
+    }
+
     const url = URL.createObjectURL(file);
     setImagePreview(url);
     setPhase('loading');
@@ -153,11 +162,14 @@ export default function App() {
       const data = await analyzeIngredients(file);
       setResult(data);
       setPhase('result');
+      const next = scanCount + 1;
+      setScanCount(next);
+      localStorage.setItem('ingrediscan_scan_count', String(next));
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
       setPhase('error');
     }
-  }, []);
+  }, [scanCount]);
 
   const reset = useCallback(() => {
     setPhase('idle');
@@ -237,6 +249,9 @@ export default function App() {
           )}
           {phase === 'error' && (
             <ErrorState key="error" error={error} onRetry={reset} />
+          )}
+          {phase === 'limit' && (
+            <LimitReached key="limit" onReset={reset} />
           )}
         </AnimatePresence>
       </div>

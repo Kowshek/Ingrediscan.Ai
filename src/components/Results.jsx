@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import ScoreCircle from './ScoreCircle';
 
@@ -121,6 +122,8 @@ function SectionLabel({ children }) {
 }
 
 export default function Results({ result, onReset }) {
+  const [feedback, setFeedback] = useState(null); // null | 'up' | 'down'
+
   const {
     score,
     ingredients = [],
@@ -305,6 +308,67 @@ export default function Results({ result, onReset }) {
       <p className="text-xs text-zinc-600 text-center px-2">
         AI analysis is for reference only — not medical advice.
       </p>
+
+      {/* Feedback */}
+      <motion.div
+        className="flex flex-col items-center gap-3"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.7 }}
+      >
+        {feedback === null && (
+          <>
+            <p className="text-xs text-zinc-600 text-center">Was this analysis helpful?</p>
+            <div className="flex gap-3">
+              <motion.button
+                onClick={() => setFeedback('up')}
+                className="px-5 py-2 rounded-xl text-sm cursor-pointer"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}
+                whileHover={{ background: 'rgba(255,255,255,0.08)' }}
+                whileTap={{ scale: 0.97 }}
+              >
+                👍
+              </motion.button>
+              <motion.button
+                onClick={() => setFeedback('down')}
+                className="px-5 py-2 rounded-xl text-sm cursor-pointer"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}
+                whileHover={{ background: 'rgba(255,255,255,0.08)' }}
+                whileTap={{ scale: 0.97 }}
+              >
+                👎
+              </motion.button>
+            </div>
+          </>
+        )}
+        {feedback === 'up' && (
+          <p className="text-xs text-zinc-500 text-center">Thanks for the feedback</p>
+        )}
+        {feedback === 'down' && (
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-xs text-zinc-500 text-center">Something look wrong?</p>
+            <motion.button
+              onClick={onReset}
+              className="px-5 py-2 rounded-xl text-sm cursor-pointer"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: '#a1a1aa',
+              }}
+              whileHover={{ background: 'rgba(255,255,255,0.08)' }}
+              whileTap={{ scale: 0.97 }}
+            >
+              Rescan this photo
+            </motion.button>
+          </div>
+        )}
+      </motion.div>
 
       {/* Reset button */}
       <motion.button
