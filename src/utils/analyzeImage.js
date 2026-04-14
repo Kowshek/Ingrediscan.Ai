@@ -1,17 +1,48 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-const PROMPT = `You are an ingredient safety expert. Analyze these product ingredients and respond ONLY in this exact JSON format:
+const PROMPT = `You are an ingredient safety expert specializing in consumer products sold in India — food, skincare, haircare, and household items.
+
+Analyze the ingredient list visible in this image and respond ONLY in valid JSON. No explanation outside the JSON.
+
+Assess each ingredient against known safety data: carcinogenicity, skin sensitization, endocrine disruption, irritation potential, allergen status, and regulatory bans (EU, India CDSCO where relevant).
+
+Respond in this exact format:
 {
-  "score": number (1-10, 10 being safest),
+  "confidence": "high" | "medium" | "low",
+  "confidence_reason": "string (why — e.g. 'image partially blurry', 'non-English text', 'ingredient list truncated')",
+  "score": number (1-10, 10 = safest),
+  "score_rationale": "string (one sentence explaining the score)",
+  "product_type": "food" | "skincare" | "haircare" | "household" | "unknown",
   "ingredients": [
     {
-      "name": "string",
-      "status": "harmful" | "decent" | "safe",
-      "reason": "string (one short sentence max 10 words explaining the concern)"
+      "name": "string (ingredient name as seen in image)",
+      "status": "harmful" | "moderate" | "safe",
+      "concern_type": "carcinogen" | "allergen" | "irritant" | "endocrine_disruptor" | "banned_substance" | "none",
+      "reason": "string (max 15 words, plain English, specific — e.g. 'linked to contact dermatitis in repeated use')"
     }
-  ]
+  ],
+  "flagged_count": {
+    "harmful": number,
+    "moderate": number,
+    "safe": number
+  },
+  "low_confidence_warning": "string | null (shown to user if confidence is low or medium — e.g. 'Ingredient list appears cut off. Results may be incomplete.')"
 }
-If the image does not show ingredient text clearly, return: {"error": "Image unclear or no ingredient list visible. Please try a closer, well-lit photo."}`;
+
+Scoring guide:
+1-3: Multiple harmful ingredients, known carcinogens or banned substances present
+4-5: Several moderate concerns, common irritants or sensitizers
+6-7: Minor concerns, mostly safe with a few moderate ingredients
+8-9: Mostly safe, 1-2 low-level concerns
+10: No concerns identified
+
+Rules:
+- If image is unclear, blurry, or shows no ingredient list: return {"error": "Unable to read ingredient list. Please take a closer, well-lit photo of the ingredients panel."}
+- If text is in Hindi, Tamil, or another Indian language: attempt analysis, set confidence to "medium" or "low" accordingly
+- If ingredient list appears truncated or cut off at edges: set low_confidence_warning
+- Do NOT guess product name
+- Do NOT include ingredients not visible in the image
+- ONLY return JSON — no preamble, no explanation outside the object`;
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
