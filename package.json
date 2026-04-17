@@ -12,12 +12,16 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.86.1",
     "@google/generative-ai": "^0.24.1",
+    "@gsap/react": "^2.1.2",
     "@tailwindcss/vite": "^4.2.2",
+    "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
+    "gsap": "^3.15.0",
     "lucide-react": "^1.8.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-spring": "^10.0.3",
     "tailwindcss": "^4.2.2"
   },
   "devDependencies": {

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import UploadZone from './components/UploadZone';
 import Results from './components/Results';
 import LimitReached from './components/LimitReached';
+import Onboarding from './components/Onboarding';
 import { analyzeIngredients } from './utils/analyzeImage';
 import './App.css';
 
@@ -139,6 +140,9 @@ function Logo() {
 
 // ── App ────────────────────────────────────────────────────────────────────
 export default function App() {
+  const [onboardingDone, setOnboardingDone] = useState(() =>
+    localStorage.getItem('onboarding_complete') === 'true'
+  );
   const [phase, setPhase] = useState('idle'); // idle | loading | result | error | limit
   const [result, setResult] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -180,6 +184,14 @@ export default function App() {
       setImagePreview(null);
     }
   }, [imagePreview]);
+
+  if (!onboardingDone) {
+    return <Onboarding onComplete={() => setOnboardingDone(true)} />;
+  }
+
+  if (phase === 'limit') {
+    return <LimitReached />;
+  }
 
   return (
     <div
@@ -249,9 +261,6 @@ export default function App() {
           )}
           {phase === 'error' && (
             <ErrorState key="error" error={error} onRetry={reset} />
-          )}
-          {phase === 'limit' && (
-            <LimitReached key="limit" onReset={reset} />
           )}
         </AnimatePresence>
       </div>
