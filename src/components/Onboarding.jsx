@@ -9,6 +9,13 @@ const TAP_THRESHOLD_MS = 250;
 
 const SLIDES = [
   {
+    isWelcome: true,
+    duration: 5000,
+    blob: { color: 'rgba(13,40,24,0.98)', pos: '50% 50%', size: '100% 80%' },
+    heading: '',
+    subtext: '',
+  },
+  {
     heading: "You buy products daily.",
     subtext: "But do you actually know what's in them?",
     blob: { color: 'rgba(37,99,235,0.16)', pos: '50% 38%', size: '90% 70%' },
@@ -37,7 +44,196 @@ const slideVariants = {
   exit:  (dir) => ({ x: dir > 0 ? '-100%' : '100%', scale: 0.95 }),
 };
 
-// ── Slide 1: Floating product icons ───────────────────────────────────────
+// ── Slide 0: Welcome ──────────────────────────────────────────────────────
+
+const PARTICLES = [
+  { left: '12%', top: '18%', color: '#4ADE80', size: 3 },
+  { left: '78%', top: '22%', color: '#38BDF8', size: 4 },
+  { left: '25%', top: '72%', color: '#4ADE80', size: 3 },
+  { left: '85%', top: '65%', color: '#38BDF8', size: 3 },
+  { left: '50%', top: '88%', color: '#4ADE80', size: 4 },
+  { left: '6%',  top: '55%', color: '#38BDF8', size: 3 },
+  { left: '65%', top: '82%', color: '#4ADE80', size: 3 },
+  { left: '40%', top: '12%', color: '#38BDF8', size: 4 },
+];
+
+const SUBTEXT_LINES = [
+  "Most people never question what's in their products.",
+  "You do. That already puts you ahead.",
+  "Let's make sure what you use is actually good for you.",
+];
+
+function WelcomeSlide() {
+  const particlesRef = useRef(null);
+
+  useGSAP(() => {
+    Array.from(particlesRef.current.children).forEach((el, i) => {
+      gsap.to(el, {
+        y: -(10 + i * 2.5),
+        x: (i % 2 === 0 ? 1 : -1) * (5 + i * 1.5),
+        duration: 2.8 + i * 0.35,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut',
+        delay: i * 0.28,
+      });
+    });
+  }, { scope: particlesRef });
+
+  return (
+    <div style={{
+      position: 'absolute',
+      inset: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '80px 36px 60px',
+      pointerEvents: 'none',
+    }}>
+      {/* Floating particles */}
+      <div ref={particlesRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        {PARTICLES.map((p, i) => (
+          <div key={i} style={{
+            position: 'absolute',
+            left: p.left,
+            top: p.top,
+            width: p.size,
+            height: p.size,
+            borderRadius: '50%',
+            background: p.color,
+            opacity: 0.3,
+          }} />
+        ))}
+      </div>
+
+      {/* Logo */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 18,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          background: 'rgba(45,212,191,0.1)',
+          border: '1px solid rgba(45,212,191,0.2)',
+          color: '#2dd4bf',
+          marginBottom: 16,
+        }}
+      >
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+          <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+          <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+          <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+          <circle cx="12" cy="12" r="3" />
+          <line x1="12" y1="9" x2="12" y2="3" />
+          <line x1="15" y1="12" x2="21" y2="12" />
+          <line x1="12" y1="15" x2="12" y2="21" />
+          <line x1="9" y1="12" x2="3" y2="12" />
+        </svg>
+      </motion.div>
+
+      {/* App name */}
+      <motion.p
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        style={{
+          margin: '0 0 20px',
+          fontSize: 32,
+          fontWeight: 800,
+          color: '#ffffff',
+          letterSpacing: '-0.5px',
+          fontFamily: "'DM Sans', system-ui, sans-serif",
+        }}
+      >
+        IngrediScan
+      </motion.p>
+
+      {/* Divider */}
+      <motion.div
+        initial={{ scaleX: 0, opacity: 0 }}
+        animate={{ scaleX: 1, opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        style={{
+          width: 40,
+          height: 1,
+          background: '#2D3F55',
+          marginBottom: 20,
+        }}
+      />
+
+      {/* Heading */}
+      <motion.h1
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        style={{
+          margin: '0 0 20px',
+          fontSize: 24,
+          fontWeight: 700,
+          color: '#ffffff',
+          textAlign: 'center',
+          letterSpacing: '-0.02em',
+          lineHeight: 1.3,
+        }}
+      >
+        You&apos;ve taken the first step.
+      </motion.h1>
+
+      {/* Staggered subtext lines — 0.5s initial delay, 0.4s apart */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', maxWidth: 300 }}>
+        {SUBTEXT_LINES.map((line, i) => (
+          <motion.p
+            key={i}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 + i * 0.4 }}
+            style={{
+              margin: 0,
+              fontSize: 16,
+              color: '#94A3B8',
+              textAlign: 'center',
+              lineHeight: 1.7,
+            }}
+          >
+            {line}
+          </motion.p>
+        ))}
+      </div>
+
+      {/* Tap hint — appears after content settles */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2.0, duration: 0.5 }}
+        style={{ marginTop: 40 }}
+      >
+        <motion.p
+          animate={{ y: [0, 4, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            margin: 0,
+            fontSize: 12,
+            color: '#64748B',
+            textAlign: 'center',
+            fontFamily: "'DM Sans', system-ui, sans-serif",
+          }}
+        >
+          tap to continue ↓
+        </motion.p>
+      </motion.div>
+    </div>
+  );
+}
+
+// ── Slide 2: Floating product icons ───────────────────────────────────────
 
 const FLOAT_ICONS = [
   { emoji: '🧴', left: '7%',  top: '12%', size: 40, rotate: -15 },
@@ -86,7 +282,7 @@ function Slide1Visual() {
   );
 }
 
-// ── Slide 2: GSAP stagger badges ──────────────────────────────────────────
+// ── Slide 3: GSAP stagger badges ──────────────────────────────────────────
 
 const PILLS = [
   { label: 'Harmful',  color: '#EF4444', bg: 'rgba(239,68,68,0.13)',  border: 'rgba(239,68,68,0.42)',  glow: true  },
@@ -147,20 +343,18 @@ function Slide2Visual() {
   );
 }
 
-// ── Slide 3: Phone scanner ────────────────────────────────────────────────
+// ── Slide 4: Phone scanner ────────────────────────────────────────────────
 
 function Slide3Visual() {
   const containerRef = useRef(null);
   const scanRef = useRef(null);
 
   useGSAP(() => {
-    // Scan line: loops top→bottom, jumps back instantly (fromTo repeat)
     gsap.fromTo(
       scanRef.current,
       { top: '22%' },
       { top: '80%', duration: 1.5, repeat: -1, ease: 'none' }
     );
-    // Side badges fade in after 0.8s
     gsap.from(containerRef.current.querySelectorAll('.scan-badge'), {
       opacity: 0,
       scale: 0.7,
@@ -176,7 +370,6 @@ function Slide3Visual() {
       ref={containerRef}
       style={{ display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'center' }}
     >
-      {/* Score badge — left */}
       <div
         className="scan-badge"
         style={{
@@ -195,7 +388,6 @@ function Slide3Visual() {
         8 / 10
       </div>
 
-      {/* Phone outline */}
       <div style={{
         width: 140,
         height: 260,
@@ -207,7 +399,6 @@ function Slide3Visual() {
         flexShrink: 0,
         boxShadow: '0 0 24px rgba(56,189,248,0.12)',
       }}>
-        {/* Notch */}
         <div style={{
           position: 'absolute',
           top: 10,
@@ -218,7 +409,6 @@ function Slide3Visual() {
           borderRadius: 4,
           background: 'rgba(56,189,248,0.35)',
         }} />
-        {/* Faint ingredient text lines */}
         {[37, 50, 63].map((pct) => (
           <div key={pct} style={{
             position: 'absolute',
@@ -230,7 +420,6 @@ function Slide3Visual() {
             background: 'rgba(56,189,248,0.14)',
           }} />
         ))}
-        {/* Scan line */}
         <div
           ref={scanRef}
           style={{
@@ -245,7 +434,6 @@ function Slide3Visual() {
         />
       </div>
 
-      {/* Harmful badge — right */}
       <div
         className="scan-badge"
         style={{
@@ -276,7 +464,6 @@ export default function Onboarding({ onComplete }) {
   const [paused, setPaused] = useState(false);
   const [exiting, setExiting] = useState(false);
 
-  // Refs — avoid stale closures in RAF callback
   const indexRef   = useRef(0);
   const progressRef = useRef(0);
   const lastTsRef  = useRef(null);
@@ -292,7 +479,6 @@ export default function Onboarding({ onComplete }) {
   pausedRef.current = paused;
   onCompleteRef.current = onComplete;
 
-  // Exit animation → call onComplete after fade
   useEffect(() => {
     if (!exiting) return;
     const t = setTimeout(() => onCompleteRef.current(), 300);
@@ -315,7 +501,6 @@ export default function Onboarding({ onComplete }) {
     setIndex(next);
   }, [handleComplete]);
 
-  // Keep navigateRef current so keyboard handler never goes stale
   navigateRef.current = navigate;
 
   // Progress bar flash on segment complete
@@ -332,9 +517,9 @@ export default function Onboarding({ onComplete }) {
     prevIndexRef.current = index;
   }, [index]);
 
-  // Confetti burst on slide 4
+  // Confetti burst on slide 5 (last slide, now index 4)
   useEffect(() => {
-    if (index !== 3) return;
+    if (index !== 4) return;
     const t = setTimeout(() => {
       confetti({
         particleCount: 55,
@@ -351,7 +536,6 @@ export default function Onboarding({ onComplete }) {
     return () => clearTimeout(t);
   }, [index]);
 
-  // Keyboard navigation — uses navigateRef so effect only mounts once
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'ArrowRight') navigateRef.current(1);
@@ -361,7 +545,7 @@ export default function Onboarding({ onComplete }) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // RAF-based progress timer — restarts on each index change
+  // RAF-based progress timer — uses per-slide duration
   useEffect(() => {
     progressRef.current = 0;
     lastTsRef.current = null;
@@ -376,7 +560,8 @@ export default function Onboarding({ onComplete }) {
       const delta = ts - lastTsRef.current;
       lastTsRef.current = ts;
 
-      const newProg = Math.min(1, progressRef.current + delta / SLIDE_DURATION);
+      const slideDuration = SLIDES[indexRef.current].duration || SLIDE_DURATION;
+      const newProg = Math.min(1, progressRef.current + delta / slideDuration);
       progressRef.current = newProg;
       setProgress(newProg);
 
@@ -471,7 +656,7 @@ export default function Onboarding({ onComplete }) {
           />
         </AnimatePresence>
 
-        {/* ── Progress bar (z-index 20, pointer-events off) ── */}
+        {/* ── Progress bar — 5 segments ── */}
         <div style={{
           position: 'absolute',
           top: 0,
@@ -504,8 +689,8 @@ export default function Onboarding({ onComplete }) {
           ))}
         </div>
 
-        {/* ── Skip button (z-index 20) ── */}
-        {index < SLIDES.length - 1 && (
+        {/* ── Skip button — hidden on slide 0 and last slide ── */}
+        {index > 0 && index < SLIDES.length - 1 && (
           <button
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); handleComplete(); }}
@@ -532,7 +717,7 @@ export default function Onboarding({ onComplete }) {
           </button>
         )}
 
-        {/* ── LEFT nav zone (z-index 4 — below content, above blob) ── */}
+        {/* ── LEFT nav zone ── */}
         <div
           onPointerDown={handleZoneDown}
           onPointerUp={handleLeftUp}
@@ -564,7 +749,7 @@ export default function Onboarding({ onComplete }) {
           }}
         />
 
-        {/* ── Slide content (z-index 6, pointer-events: none except CTA) ── */}
+        {/* ── Slide content ── */}
         <div style={{
           position: 'absolute',
           inset: 0,
@@ -592,95 +777,101 @@ export default function Onboarding({ onComplete }) {
                 gap: 36,
               }}
             >
-              {/* Visual area */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: 150,
-                width: '100%',
-              }}>
-                {index === 0 && <Slide1Visual />}
-                {index === 1 && <Slide2Visual />}
-                {index === 2 && <Slide3Visual />}
-              </div>
-
-              {/* Text */}
-              <div style={{
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 14,
-                maxWidth: 320,
-              }}>
-                <h1 style={{
-                  margin: 0,
-                  fontSize: 28,
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  lineHeight: 1.25,
-                  letterSpacing: '-0.02em',
-                }}>
-                  {slide.heading}
-                </h1>
-                <p style={{
-                  margin: 0,
-                  fontSize: 16,
-                  color: '#94A3B8',
-                  lineHeight: 1.65,
-                }}>
-                  {slide.subtext}
-                </p>
-              </div>
-
-              {/* CTA — slide 4 only (pointer-events: all overrides parent none) */}
-              {index === SLIDES.length - 1 && (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 14,
-                  width: '100%',
-                  pointerEvents: 'all',
-                }}>
-                  <p style={{
-                    margin: 0,
-                    fontSize: 13,
-                    color: '#475569',
-                    fontFamily: "'DM Sans', system-ui, sans-serif",
-                    letterSpacing: '0.02em',
+              {slide.isWelcome ? (
+                <WelcomeSlide />
+              ) : (
+                <>
+                  {/* Visual area */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: 150,
+                    width: '100%',
                   }}>
-                    Join 100+ people scanning smarter
-                  </p>
+                    {index === 1 && <Slide1Visual />}
+                    {index === 2 && <Slide2Visual />}
+                    {index === 3 && <Slide3Visual />}
+                  </div>
 
-                  <motion.button
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); handleComplete(); }}
-                    animate={{ scale: [1, 1.03, 1] }}
-                    transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                    style={{
-                      width: '100%',
-                      maxWidth: 340,
-                      minHeight: 56,
-                      borderRadius: 16,
-                      background: 'rgba(45,212,191,0.1)',
-                      border: '1.5px solid rgba(45,212,191,0.28)',
-                      color: '#2dd4bf',
+                  {/* Text */}
+                  <div style={{
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 14,
+                    maxWidth: 320,
+                  }}>
+                    <h1 style={{
+                      margin: 0,
+                      fontSize: 28,
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      lineHeight: 1.25,
+                      letterSpacing: '-0.02em',
+                    }}>
+                      {slide.heading}
+                    </h1>
+                    <p style={{
+                      margin: 0,
                       fontSize: 16,
-                      fontWeight: 600,
-                      cursor: 'pointer',
+                      color: '#94A3B8',
+                      lineHeight: 1.65,
+                    }}>
+                      {slide.subtext}
+                    </p>
+                  </div>
+
+                  {/* CTA — last slide only */}
+                  {index === SLIDES.length - 1 && (
+                    <div style={{
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      fontFamily: "'DM Sans', system-ui, sans-serif",
-                      letterSpacing: '0.01em',
-                    }}
-                    whileHover={{ background: 'rgba(45,212,191,0.17)' }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    Start Scanning →
-                  </motion.button>
-                </div>
+                      gap: 14,
+                      width: '100%',
+                      pointerEvents: 'all',
+                    }}>
+                      <p style={{
+                        margin: 0,
+                        fontSize: 13,
+                        color: '#475569',
+                        fontFamily: "'DM Sans', system-ui, sans-serif",
+                        letterSpacing: '0.02em',
+                      }}>
+                        Join 100+ people scanning smarter
+                      </p>
+
+                      <motion.button
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); handleComplete(); }}
+                        animate={{ scale: [1, 1.03, 1] }}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                        style={{
+                          width: '100%',
+                          maxWidth: 340,
+                          minHeight: 56,
+                          borderRadius: 16,
+                          background: 'rgba(45,212,191,0.1)',
+                          border: '1.5px solid rgba(45,212,191,0.28)',
+                          color: '#2dd4bf',
+                          fontSize: 16,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontFamily: "'DM Sans', system-ui, sans-serif",
+                          letterSpacing: '0.01em',
+                        }}
+                        whileHover={{ background: 'rgba(45,212,191,0.17)' }}
+                        whileTap={{ scale: 0.97 }}
+                      >
+                        Start Scanning →
+                      </motion.button>
+                    </div>
+                  )}
+                </>
               )}
             </motion.div>
           </AnimatePresence>
