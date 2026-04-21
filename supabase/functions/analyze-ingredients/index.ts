@@ -161,18 +161,27 @@ serve(async (req) => {
       )
     }
 
-    const text = data.content[0]?.text ?? ''
-    const cleaned = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim()
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+    const text = data.content[0].text
 
-    if (!jsonMatch) {
-      return new Response(
-        JSON.stringify({ error: 'Could not parse AI response. Please try again.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Robustly extract JSON — handle markdown fences, extra text, trailing commas
+    let parsed
+    try {
+      // Try direct parse first
+      parsed = JSON.parse(text)
+    } catch {
+      // Strip markdown fences and retry
+      const fenceStripped = text.replace(/```json\n?|\n?```/g, '').trim()
+      try {
+        parsed = JSON.parse(fenceStripped)
+      } catch {
+        // Extract first JSON object found in the string
+        const match = fenceStripped.match(/\{[\s\S]*\}/)
+        if (!match) {
+          throw new Error('Could not extract JSON from Claude response')
+        }
+        parsed = JSON.parse(match[0])
+      }
     }
-
-    const parsed = JSON.parse(jsonMatch[0])
 
     return new Response(
       JSON.stringify(parsed),

@@ -59,7 +59,7 @@ export async function analyzeIngredients(imageFile) {
     throw new Error(parsed.error);
   }
 
-  if (typeof parsed.score !== "number" || !Array.isArray(parsed.ingredients)) {
+  if (typeof parsed.score !== "number" || !Array.isArray(parsed.flagged)) {
     throw new Error(
       "Incomplete analysis returned. Try a clearer photo of the ingredient list.",
     );
@@ -69,7 +69,7 @@ export async function analyzeIngredients(imageFile) {
   if (hash) {
     supabase.from('scans').insert({
       ingredient_hash: hash,
-      ingredients_raw: parsed.ingredients.map(i => i.name).join(', '),
+      ingredients_raw: parsed.flagged.map(i => i.name).join(', '),
       score: parsed.score,
       flagged: parsed,
       scan_count: 1,
