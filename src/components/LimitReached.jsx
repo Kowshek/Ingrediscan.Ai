@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../lib/supabase';
 
 function Logo() {
   return (
@@ -76,6 +77,14 @@ function WaitlistForm({ initialData }) {
         body: new URLSearchParams(fields),
         mode: 'no-cors',
       });
+      // Backup to Supabase — fire-and-forget, never blocks the UI
+      supabase.from('waitlist').insert({
+        name: fields.name,
+        email: fields.email,
+        products: fields.products,
+        source: fields.source,
+        blocker: fields.barrier,
+      }).then(({ error }) => { if (error) console.error(error); });
       setStatus('success');
     } catch {
       setStatus('error');

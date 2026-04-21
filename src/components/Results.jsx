@@ -122,7 +122,7 @@ function SectionLabel({ children }) {
 }
 
 export default function Results({ result, onReset }) {
-  const [feedback, setFeedback] = useState(null); // null | 'up' | 'down'
+  // const [feedback, setFeedback] = useState(null); // null | 'up' | 'down'
 
   const {
     score,
@@ -309,7 +309,7 @@ export default function Results({ result, onReset }) {
         AI analysis is for reference only — not medical advice.
       </p>
 
-      {/* Feedback */}
+      {/* Feedback — temporarily hidden
       <motion.div
         className="flex flex-col items-center gap-3"
         initial={{ opacity: 0 }}
@@ -369,6 +369,7 @@ export default function Results({ result, onReset }) {
           </div>
         )}
       </motion.div>
+      */}
 
       {/* Reset button */}
       <motion.button

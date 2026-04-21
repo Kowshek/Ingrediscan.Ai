@@ -10,9 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.86.1",
     "@google/generative-ai": "^0.24.1",
     "@gsap/react": "^2.1.2",
+    "@supabase/supabase-js": "^2.103.3",
     "@tailwindcss/vite": "^4.2.2",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",

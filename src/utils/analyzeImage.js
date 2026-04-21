@@ -1,65 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
-
-const PROMPT = `You are an ingredient safety expert specializing in consumer products sold in India — food, skincare, haircare, and household items.
-
-Analyze the ingredient list visible in this image and respond ONLY in valid JSON. No explanation outside the JSON.
-
-STRICT RULES BEFORE ANALYSIS:
-- If the image shows a pharmaceutical product, medicine, drug, or supplement with active pharmaceutical ingredients (e.g. paracetamol, ibuprofen, cetirizine, amoxicillin, any API listed on a drug label): return {"error": "Medicine and pharmaceutical products are outside our scope. Please consult a doctor or pharmacist for drug safety information."}
-- If image is unclear, blurry, or shows no ingredient list: return {"error": "Unable to read ingredient list. Please take a closer, well-lit photo of the ingredients panel."}
-
-Assess each ingredient against known safety data: carcinogenicity, skin sensitization, endocrine disruption, irritation potential, allergen status, metabolic harm from regular use, and regulatory bans (EU, India CDSCO where relevant).
-
-IMPORTANT — flag these as "moderate" with concern_type "frequent_use_concern" when found in food products:
-- Palm oil, palm kernel oil (linked to cardiovascular risk at regular consumption)
-- Maltodextrin, modified starch (high glycemic, spikes blood sugar)
-- Added sugar, sugar syrup, glucose syrup, fructose, high-fructose corn syrup
-- Artificial flavours, artificial flavouring, nature-identical flavouring
-- Refined vegetable oils (sunflower, soybean, canola in high quantities)
-- Sodium (if listed as a significant ingredient, not a trace mineral)
-- Carrageenan (gut inflammation risk)
-- Sodium benzoate, potassium sorbate (preservatives with cumulative concerns)
-These are not acutely toxic but are harmful with regular consumption — say so clearly in the reason field.
-
-Respond in this exact format:
-{
-  "confidence": "high" | "medium" | "low",
-  "confidence_reason": "string",
-  "score": number (1-10, 10 = safest),
-  "score_rationale": "string (one sentence explaining the score)",
-  "ingredients": [
-    {
-      "name": "string (ingredient name as seen in image)",
-      "status": "harmful" | "moderate" | "safe",
-      "concern_type": "carcinogen" | "allergen" | "irritant" | "endocrine_disruptor" | "banned_substance" | "frequent_use_concern" | "none",
-      "reason": "string (max 15 words, plain English, specific)"
-    }
-  ],
-  "flagged_count": {
-    "harmful": number,
-    "moderate": number,
-    "safe": number
-  },
-  "low_confidence_warning": "string | null"
-}
-
-Scoring guide:
-1-3: Multiple harmful ingredients, known carcinogens or banned substances present
-4-5: Several moderate concerns, common irritants or sensitizers
-6-7: Minor concerns, mostly safe with a few moderate ingredients — products with palm oil + maltodextrin + added sugar should land here at best
-8-9: Mostly safe, 1-2 low-level concerns
-10: No concerns identified
-
-Rules:
-- If the ingredient list is not in English or is not legible: return {"error": "Unable to read ingredient list. Please take a closer, well-lit photo of the ingredients panel."}
-- If ingredient list appears truncated or cut off at edges: set low_confidence_warning
-- Do NOT guess product name
-- Do NOT include ingredients not visible in the image
-- ONLY return JSON — no preamble, no explanation outside the object
-- INS numbers (Indian additive codes): flag INS 102 (tartrazine), INS 110 (sunset yellow), INS 124 (ponceau 4R), INS 211 (sodium benzoate), INS 621 (MSG) as moderate with concern_type allergen or frequent_use_concern as appropriate
-- "Parfum" or "Fragrance" in skincare: always flag as moderate, allergen — contains undisclosed compounds, common sensitizer
-- Refined palm oil, palm kernel oil, palmolein — all variants of palm oil, flag as frequent_use_concern`
-
+import { supabase } from '../lib/supabase';
+import { hashIngredients } from '../lib/hash';
 
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -71,65 +11,49 @@ function fileToBase64(file) {
 }
 
 export async function analyzeIngredients(imageFile) {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "No API key configured. Add VITE_ANTHROPIC_API_KEY to your .env file.",
-    );
-  }
-
-  const client = new Anthropic({
-    apiKey,
-    dangerouslyAllowBrowser: true,
-  });
-
   const base64 = await fileToBase64(imageFile);
-
   const mediaType = imageFile.type || "image/jpeg";
 
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 1024,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: mediaType,
-              data: base64,
-            },
-          },
-          {
-            type: "text",
-            text: PROMPT,
-          },
-        ],
-      },
-    ],
-  });
-
-  const text = response.content[0]?.text ?? "";
-
-  // Strip markdown code fences if present
-  const cleaned = text
-    .replace(/```(?:json)?\s*/gi, "")
-    .replace(/```/g, "")
-    .trim();
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-
-  if (!jsonMatch) {
-    throw new Error("Could not parse AI response. Please try again.");
-  }
-
-  let parsed;
+  // Pre-flight cache check — hash the image bytes as fingerprint
+  let hash;
   try {
-    parsed = JSON.parse(jsonMatch[0]);
-  } catch {
-    throw new Error("Invalid response format. Please try again.");
+    hash = await hashIngredients(base64);
+    const { data } = await supabase
+      .from('scans')
+      .select('*')
+      .eq('ingredient_hash', hash)
+      .single();
+    if (data?.flagged) {
+      supabase
+        .from('scans')
+        .update({ scan_count: data.scan_count + 1 })
+        .eq('ingredient_hash', hash)
+        .then(({ error }) => { if (error) console.error(error); });
+      return data.flagged;
+    }
+  } catch { /* cache miss or Supabase unavailable — fall through to Edge Function */ }
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  const response = await fetch(
+    `${supabaseUrl}/functions/v1/analyze-ingredients`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ imageBase64: base64, mediaType }),
+    }
+  );
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || 'Analysis failed. Please try again.');
   }
+
+  const parsed = await response.json();
 
   if (parsed.error) {
     throw new Error(parsed.error);
@@ -139,6 +63,17 @@ export async function analyzeIngredients(imageFile) {
     throw new Error(
       "Incomplete analysis returned. Try a clearer photo of the ingredient list.",
     );
+  }
+
+  // Cache miss — persist result for future lookups (fire-and-forget)
+  if (hash) {
+    supabase.from('scans').insert({
+      ingredient_hash: hash,
+      ingredients_raw: parsed.ingredients.map(i => i.name).join(', '),
+      score: parsed.score,
+      flagged: parsed,
+      scan_count: 1,
+    }).then(({ error }) => { if (error) console.error(error); });
   }
 
   return parsed;
