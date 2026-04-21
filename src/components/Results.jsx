@@ -1,6 +1,90 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import ScoreCircle from './ScoreCircle';
+import { supabase } from '../lib/supabase';
+
+function SuggestionsBox({ score }) {
+  const [text, setText] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    if (!text.trim()) return;
+    setSubmitted(true);
+    supabase.from('feedback').insert({
+      suggestion: text.trim(),
+      score,
+    }).then(({ error }) => { if (error) console.error(error); });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.5 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+    >
+      <p style={{
+        fontSize: '12px',
+        color: '#64748B',
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        fontWeight: 600,
+      }}>
+        Got feedback?
+      </p>
+
+      {submitted ? (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{ fontSize: '14px', color: '#4ADE80' }}
+        >
+          Thanks for the feedback 
+        </motion.p>
+      ) : (
+        <>
+          <textarea
+            rows={3}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="What would make this more useful for you?"
+            style={{
+              width: '100%',
+              background: '#1E293B',
+              border: '1px solid #2D3F55',
+              borderRadius: '10px',
+              padding: '12px 16px',
+              color: '#F1F5F9',
+              fontSize: '14px',
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+              resize: 'none',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+          <motion.button
+            onClick={handleSubmit}
+            style={{
+              alignSelf: 'flex-start',
+              padding: '8px 20px',
+              borderRadius: '8px',
+              border: '1px solid #2D3F55',
+              background: 'transparent',
+              color: '#94A3B8',
+              fontSize: '13px',
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+              cursor: 'pointer',
+            }}
+            whileHover={{ borderColor: '#475569', color: '#CBD5E1' }}
+            whileTap={{ scale: 0.97 }}
+          >
+            Send feedback
+          </motion.button>
+        </>
+      )}
+    </motion.div>
+  );
+}
 
 const STATUS_MAP = {
   harmful: {
@@ -370,6 +454,9 @@ export default function Results({ result, onReset }) {
         )}
       </motion.div>
       */}
+
+      {/* Suggestions */}
+      <SuggestionsBox score={score} />
 
       {/* Reset button */}
       <motion.button

@@ -355,7 +355,9 @@ export default function LimitReached() {
             Already on the waitlist?
           </p>
           <motion.a
-            href="https://ingrediscan.ai"
+            href="https://www.ingrediscan.in/"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               display: 'inline-block',
               padding: '10px 24px',

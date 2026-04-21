@@ -122,9 +122,7 @@ serve(async (req) => {
       )
     }
 
-    // Validate imageBase64 is actually base64
-    const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/
-    if (!base64Regex.test(imageBase64)) {
+    if (typeof imageBase64 !== 'string' || imageBase64.length < 100) {
       return new Response(
         JSON.stringify({ error: 'Invalid image data.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -182,6 +180,7 @@ serve(async (req) => {
     )
 
   } catch (err) {
+    console.error('Edge Function error:', (err as Error).message, (err as Error).stack)
     return new Response(
       JSON.stringify({ error: 'Server error', message: (err as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
