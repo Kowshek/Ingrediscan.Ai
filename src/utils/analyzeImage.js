@@ -29,7 +29,13 @@ export async function analyzeIngredients(imageFile) {
         .update({ scan_count: data.scan_count + 1 })
         .eq('ingredient_hash', hash)
         .then(({ error }) => { if (error) console.error(error); });
-      return data.flagged;
+      // Normalize legacy cache records that used "flagged" key instead of "ingredients"
+      const cached = data.flagged;
+      if (Array.isArray(cached.flagged) && !Array.isArray(cached.ingredients)) {
+        cached.ingredients = cached.flagged;
+        delete cached.flagged;
+      }
+      return cached;
     }
   } catch { /* cache miss or Supabase unavailable — fall through to Edge Function */ }
 
@@ -59,7 +65,14 @@ export async function analyzeIngredients(imageFile) {
     throw new Error(parsed.error);
   }
 
-  if (typeof parsed.score !== "number" || !Array.isArray(parsed.flagged)) {
+  // Normalize: handle both old edge function responses ("flagged") and new ("ingredients")
+  // This makes the frontend resilient even if the edge function hasn't been redeployed yet
+  if (Array.isArray(parsed.flagged) && !Array.isArray(parsed.ingredients)) {
+    parsed.ingredients = parsed.flagged;
+    delete parsed.flagged;
+  }
+
+  if (typeof parsed.score !== "number" || !Array.isArray(parsed.ingredients)) {
     throw new Error(
       "Incomplete analysis returned. Try a clearer photo of the ingredient list.",
     );
@@ -69,7 +82,7 @@ export async function analyzeIngredients(imageFile) {
   if (hash) {
     supabase.from('scans').insert({
       ingredient_hash: hash,
-      ingredients_raw: parsed.flagged.map(i => i.name).join(', '),
+      ingredients_raw: parsed.ingredients.map(i => i.name).join(', '),
       score: parsed.score,
       flagged: parsed,
       scan_count: 1,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -475,9 +475,11 @@ export default function Onboarding({ onComplete }) {
   const prevIndexRef = useRef(0);
   const navigateRef = useRef(null);
 
-  indexRef.current = index;
-  pausedRef.current = paused;
-  onCompleteRef.current = onComplete;
+  useLayoutEffect(() => {
+    indexRef.current = index;
+    pausedRef.current = paused;
+    onCompleteRef.current = onComplete;
+  });
 
   useEffect(() => {
     if (!exiting) return;
@@ -501,7 +503,9 @@ export default function Onboarding({ onComplete }) {
     setIndex(next);
   }, [handleComplete]);
 
-  navigateRef.current = navigate;
+  useLayoutEffect(() => {
+    navigateRef.current = navigate;
+  });
 
   // Progress bar flash on segment complete
   useEffect(() => {
@@ -584,7 +588,7 @@ export default function Onboarding({ onComplete }) {
 
     rafRef.current = requestAnimationFrame(tick);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [index]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [index]);
 
   // ── Nav zone handlers ────────────────────────────────────────────────────
 

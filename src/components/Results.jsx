@@ -287,18 +287,20 @@ export default function Results({ result, onReset }) {
               >
                 🟠 {moderate.length} Moderate
               </span>
-              <span
-                className="rounded-full font-medium"
-                style={{
-                  fontSize: '13px',
-                  padding: '6px 14px',
-                  background: 'rgba(74,222,128,0.2)',
-                  color: '#4ADE80',
-                  border: '1px solid rgba(74,222,128,0.4)',
-                }}
-              >
-                🟢 {safe.length} Safe
-              </span>
+              {safe.length > 0 && (
+                <span
+                  className="rounded-full font-medium"
+                  style={{
+                    fontSize: '13px',
+                    padding: '6px 14px',
+                    background: 'rgba(74,222,128,0.2)',
+                    color: '#4ADE80',
+                    border: '1px solid rgba(74,222,128,0.4)',
+                  }}
+                >
+                  🟢 {safe.length} Safe
+                </span>
+              )}
             </motion.div>
 
             {/* Score rationale */}
