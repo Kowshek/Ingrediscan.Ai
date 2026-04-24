@@ -19,7 +19,14 @@ test.describe('IngrediScan smoke', () => {
   })
 
   test('upload affordance is present and keyboard-reachable', async ({ page }) => {
+    // In CI, localStorage is empty so the app shows the Onboarding screen
+    // (slide 0 has zero interactive elements). Pre-set the flag so the app
+    // boots straight into the UploadZone where the file input lives.
+    await page.addInitScript(() => {
+      localStorage.setItem('onboarding_complete', 'true')
+    })
     await page.goto('/')
+    await page.waitForLoadState('networkidle')
     // The upload zone should be focusable somehow — drag-drop area or button.
     const candidates = page.locator('button, [role="button"], input[type="file"], label')
     expect(await candidates.count()).toBeGreaterThan(0)
