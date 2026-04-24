@@ -25,3 +25,9 @@ dist-ssr
 *.sln
 *.sw?
 
+
+# Vite temp files
+vite.config.js.timestamp-*
+
+# CI helper scripts
+fix*.bat
