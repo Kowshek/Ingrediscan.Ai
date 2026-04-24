@@ -1,0 +1,24 @@
+# .gitleaks.toml
+# Allowlist for secrets that existed in early commits and have since been
+# deleted from the working tree and revoked at the provider. Gitleaks scans
+# all history (fetch-depth: 0) so without this the CI job fails permanently.
+#
+# ── What's in here ─────────────────────────────────────────────────────────
+# Commits 1f5eb65 / f5c4b45  — Anthropic API key (sk-ant-api03-…)
+#                              committed Apr 13 2026, key already revoked
+# Commits 98021fd / feded89 / 5927d41 — Google API key (AIzaSy…)
+#                              committed Apr 13 2026, key already revoked
+#
+# !! Do NOT add new allowlist entries without also revoking the leaked key !!
+
+title = "IngrediScan gitleaks config"
+
+[allowlist]
+  description = "Historic commits that contained keys now deleted and revoked"
+  commits = [
+    "1f5eb6594791d2ef553c3c0717451288bcb66051",
+    "f5c4b458a7792ba8e302bbff7b9c92721e92d75d",
+    "98021fd82d9bd54c887f2c0669f0dd9d961d90ae",
+    "feded89e239ce187396e6292f1bdf732d4ce6da7",
+    "5927d4199a93730083844c108a5acda5dbd25897",
+  ]

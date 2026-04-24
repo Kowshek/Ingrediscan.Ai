@@ -69,7 +69,8 @@ jobs:
       - run: npm ci
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - name: Run E2E tests (chromium only — webkit not installed in CI)
+        run: npm run test:e2e -- --project=chromium
         env:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-anon-key

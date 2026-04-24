@@ -1,0 +1,19 @@
+# Normalize line endings to LF on commit, checkout converts to LF everywhere.
+# This stops CRLF noise in diffs on Windows dev machines.
+* text=auto eol=lf
+
+# Explicitly binary — never touch line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.gz binary
