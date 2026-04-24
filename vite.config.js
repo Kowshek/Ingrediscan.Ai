@@ -18,18 +18,23 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
-      include: ['src/**/*.{js,jsx}', 'supabase/functions/**/*.ts'],
+      // Only measure coverage on logic/utility files that have unit tests.
+      // React UI components are covered by E2E, not unit tests.
+      // The Deno edge function index.ts runs in a different runtime entirely.
+      include: [
+        'src/lib/**/*.{js,ts}',
+        'src/utils/**/*.{js,ts}',
+        'supabase/functions/_shared/**/*.ts',
+      ],
       exclude: [
-        'src/main.jsx',
-        'src/**/*.test.{js,jsx}',
-        'src/assets/**',
+        'src/**/*.test.{js,jsx,ts}',
         '**/node_modules/**',
       ],
       thresholds: {
-        lines: 50,
-        functions: 50,
-        branches: 50,
-        statements: 50,
+        lines: 80,
+        functions: 70,
+        branches: 70,
+        statements: 80,
       },
     },
   },

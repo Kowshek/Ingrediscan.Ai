@@ -67,6 +67,11 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Build app for preview server
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-anon-key
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       - name: Run E2E tests (chromium only — webkit not installed in CI)
