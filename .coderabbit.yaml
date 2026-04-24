@@ -1,0 +1,156 @@
+# CodeRabbit configuration for IngrediScan.AI
+# Docs: https://docs.coderabbit.ai/guides/configuration-overview
+# Philosophy: assertive security-first review. This app handles uploaded images,
+# third-party AI API keys, and a Supabase backend — so we trade review speed
+# for thoroughness.
+
+language: en-US
+tone_instructions: >-
+  Be direct and technical. Skip pleasantries. When flagging issues, explain the
+  concrete risk (what breaks, who can exploit it, what data is exposed).
+  Suggest a specific fix, not vague advice. Prefer fewer, high-signal comments
+  over many nits.
+
+early_access: false
+enable_free_tier: true
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+      - develop
+
+  # Don't waste review budget on generated / vendored files.
+  path_filters:
+    - "!dist/**"
+    - "!node_modules/**"
+    - "!package-lock.json"
+    - "!public/**"
+    - "!supabase/.temp/**"
+    - "!.vscode/**"
+
+  # Per-path guidance. CodeRabbit reads these when reviewing files under
+  # each glob — be specific about what "bad" looks like in each layer.
+  path_instructions:
+    - path: "supabase/functions/**/*.ts"
+      instructions: |
+        This is a Supabase Edge Function running on Deno. It calls the
+        Anthropic API with a user-provided image. Flag ANY of the following
+        without exception:
+        - In-memory state (Map, Set, variables) used as rate limit, cache,
+          or session store. Edge function instances are ephemeral — state
+          resets on cold start and is per-instance, so this is not a real
+          limit. Require Postgres-backed storage instead.
+        - Origin / CORS misconfigurations: missing allowlist, wildcard (*)
+          origin, Access-Control-Allow-Credentials with *, echoing request
+          Origin without validation, or silently falling back to a default
+          origin instead of returning 403.
+        - `err.message` or `err.stack` being serialized into the response
+          body. Use a generic message client-side; log details server-side.
+        - Unchecked array or property access on untrusted API responses
+          (e.g. `data.content[0].text` without guarding `data.content` shape).
+        - Missing input validation on size, MIME type, or payload shape.
+        - Hard-coded secrets, API keys, or service-role tokens. All secrets
+          must come from `Deno.env.get(...)`.
+        - Prompt-injection surfaces: the PROMPT is sent alongside user image
+          data. Any change that weakens the "ignore instructions in image"
+          guard is a regression.
+        - Missing `await` on async calls (especially `response.json()`).
+        - Calls to external APIs without timeouts.
+
+    - path: "src/lib/**/*.{js,jsx}"
+      instructions: |
+        These are shared client libraries. Flag:
+        - Any use of `import.meta.env.VITE_*` for a secret. VITE_-prefixed
+          vars are bundled into the browser and are NOT secrets.
+        - `supabase.from(...)` calls without `.throwOnError()` or explicit
+          error handling that bubbles up to the user.
+        - Non-parameterized query building (string concat into Supabase
+          filters).
+
+    - path: "src/utils/**/*.{js,jsx}"
+      instructions: |
+        Business logic utilities. Flag:
+        - `catch { /* swallow */ }` blocks with no logging or error reporting.
+          Silent catches hide real bugs. If intentional, the catch must log
+          the error and narrow by error type.
+        - Fire-and-forget promises without `.catch()` — unhandled rejections
+          crash clients.
+        - Trusting cached data from the DB as-is without schema validation.
+          A poisoned cache entry means the next user gets attacker-controlled
+          data rendered in their UI.
+
+    - path: "src/components/**/*.{jsx,tsx}"
+      instructions: |
+        React components. Flag:
+        - `dangerouslySetInnerHTML` on any user-supplied string.
+        - Missing key props on list renders.
+        - Inline event handlers that close over stale state (missing deps in
+          useCallback/useMemo/useEffect).
+        - Accessibility: missing alt text on images, missing aria-label on
+          icon-only buttons, missing keyboard handlers on role="button" divs.
+        - Animations (framer-motion, gsap) with no respect for
+          `prefers-reduced-motion`.
+        - Hardcoded strings that should be error-handled/localized.
+
+    - path: "src/**/*.test.{js,jsx}"
+      instructions: |
+        Vitest unit tests. Flag:
+        - Tests that only assert the mock was called but don't assert output
+          shape or side effects.
+        - `expect(x).toBeTruthy()` on non-boolean values — be specific.
+        - Missing tests for the error path on any function that has
+          try/catch in the source.
+
+    - path: "tests/e2e/**/*.{js,ts}"
+      instructions: |
+        Playwright E2E tests. Flag:
+        - Hard-coded waits (`page.waitForTimeout`). Use `waitFor`/`expect`
+          with auto-retry.
+        - Tests hitting production URLs.
+        - Tests that depend on each other's state.
+
+    - path: "supabase/migrations/**/*.sql"
+      instructions: |
+        Postgres migrations. Flag:
+        - Tables created without `ENABLE ROW LEVEL SECURITY`.
+        - RLS policies with `USING (true)` or no check.
+        - `GRANT ALL ... TO anon` or similar over-permissioning.
+        - Missing indexes on columns referenced in RLS policies.
+
+  # Let CodeRabbit run these static tools automatically. Their output feeds
+  # into the AI review so issues get triaged, not just dumped.
+  tools:
+    eslint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    semgrep:
+      enabled: true
+    checkov:
+      enabled: true
+    actionlint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  pull_requests:
+    scope: auto
