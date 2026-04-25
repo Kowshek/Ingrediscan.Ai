@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { track } from '../lib/analytics';
 
 function Logo() {
   return (
@@ -85,6 +86,7 @@ function WaitlistForm({ initialData }) {
         source: fields.source,
         blocker: fields.barrier,
       }).then(({ error }) => { if (error) console.error(error); });
+      track('waitlist_submitted', { source: fields.source || 'unknown' });
       setStatus('success');
     } catch {
       setStatus('error');

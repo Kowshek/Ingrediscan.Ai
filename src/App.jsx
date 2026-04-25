@@ -5,6 +5,7 @@ import Results from './components/Results';
 import LimitReached from './components/LimitReached';
 import Onboarding from './components/Onboarding';
 import { analyzeIngredients } from './utils/analyzeImage';
+import { track } from './lib/analytics';
 import './App.css';
 
 // ── Loading state ──────────────────────────────────────────────────────────
@@ -152,7 +153,9 @@ export default function App() {
   );
 
   const handleAnalyze = useCallback(async (file) => {
+    // Client-side limit check (fast path — avoids unnecessary API call)
     if (scanCount >= 3) {
+      track('scan_limit_reached', { source: 'client', scans_used: scanCount });
       setPhase('limit');
       return;
     }
@@ -161,15 +164,33 @@ export default function App() {
     setImagePreview(url);
     setPhase('loading');
     setError(null);
+    track('scan_started', { scan_number: scanCount + 1 });
 
     try {
       const data = await analyzeIngredients(file);
-      setResult(data);
-      setPhase('result');
       const next = scanCount + 1;
       setScanCount(next);
       localStorage.setItem('ingrediscan_scan_count', String(next));
+      setResult(data);
+      setPhase('result');
+      track('scan_completed', {
+        score: data.score,
+        harmful_count: data.ingredients?.filter(i => i.status === 'harmful').length ?? 0,
+        moderate_count: data.ingredients?.filter(i => i.status === 'moderate').length ?? 0,
+        total_flagged: data.ingredients?.length ?? 0,
+        has_confidence_warning: !!data.low_confidence_warning,
+        scan_number: next,
+      });
     } catch (err) {
+      // Server confirmed the free limit was hit (user bypassed localStorage)
+      if (err.code === 'scan_limit_reached') {
+        track('scan_limit_reached', { source: 'server', scans_used: scanCount });
+        localStorage.setItem('ingrediscan_scan_count', '3');
+        setScanCount(3);
+        setPhase('limit');
+        return;
+      }
+      track('scan_error', { reason: err.message });
       setError(err.message || 'Something went wrong. Please try again.');
       setPhase('error');
     }
@@ -186,7 +207,12 @@ export default function App() {
   }, [imagePreview]);
 
   if (!onboardingDone) {
-    return <Onboarding onComplete={() => setOnboardingDone(true)} />;
+    return (
+      <Onboarding onComplete={() => {
+        track('onboarding_completed');
+        setOnboardingDone(true);
+      }} />
+    );
   }
 
   if (phase === 'limit') {

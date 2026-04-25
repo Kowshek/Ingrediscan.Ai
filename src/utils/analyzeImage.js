@@ -105,6 +105,12 @@ export async function analyzeIngredients(imageFile) {
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
+    // Server-side scan limit — user bypassed localStorage (incognito, cleared storage, etc.)
+    if (response.status === 403 && errData.error === 'scan_limit_reached') {
+      const limitErr = new Error('scan_limit_reached');
+      limitErr.code = 'scan_limit_reached';
+      throw limitErr;
+    }
     throw new Error(errData.error || 'Analysis failed. Please try again.');
   }
 
