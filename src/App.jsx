@@ -196,7 +196,8 @@ export default function App() {
 
   const handleAnalyze = useCallback(async (file) => {
     // Client-side limit check (fast path — avoids unnecessary API call)
-    if (scanCount >= 3) {
+    // Bypassed in dev so you can stress-test locally without clearing storage.
+    if (!import.meta.env.DEV && scanCount >= 3) {
       track('scan_limit_reached', { source: 'client', scans_used: scanCount });
       setPhase('limit');
       return;

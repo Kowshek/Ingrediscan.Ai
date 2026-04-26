@@ -167,8 +167,14 @@ serve(async (req) => {
     // ── 2. Server-side free scan limit (3 scans per IP) ───────────────────
     // This is the real enforcement. localStorage is client-side and trivially
     // bypassed — this check cannot be circumvented without a new IP.
+    // Dev bypass: frontend sends X-Dev-Bypass header with a shared secret
+    // stored in VITE_DEV_BYPASS_SECRET (local .env only, never in Vercel prod).
+    const devBypassSecret = Deno.env.get("DEV_BYPASS_SECRET")
+    const devBypassHeader = req.headers.get("X-Dev-Bypass")
+    const isDevBypass = !!(devBypassSecret && devBypassHeader && devBypassSecret === devBypassHeader)
+
     let currentIpScanCount = 0
-    if (adminClient) {
+    if (adminClient && !isDevBypass) {
       const { data: ipRow, error: ipErr } = await adminClient
         .from("ip_scan_counts")
         .select("scan_count")
@@ -330,11 +336,13 @@ serve(async (req) => {
     // ── 6. Persist result + increment IP scan count ────────────────────────
     // Always increment IP scan count — even for medicine/blurry errors —
     // to prevent abuse (uploading medicine photos to avoid using free scans).
+    // Localhost is exempt — don't pollute prod data during stress testing.
     // Only cache valid analysis results (not error passthroughs).
     if (adminClient) {
-      const dbOps: Promise<unknown>[] = [
-        incrementIpScanCount(ipHash, currentIpScanCount, now),
-      ]
+      const dbOps: Promise<unknown>[] = []
+      if (!isDevBypass) {
+        dbOps.push(incrementIpScanCount(ipHash, currentIpScanCount, now))
+      }
 
       if (!validated.value.error) {
         // Valid analysis — save to cache

@@ -91,6 +91,11 @@ export async function analyzeIngredients(imageFile) {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+  const devBypassSecret = import.meta.env.VITE_DEV_BYPASS_SECRET;
+  const extraHeaders = import.meta.env.DEV && devBypassSecret
+    ? { 'X-Dev-Bypass': devBypassSecret }
+    : {};
+
   const response = await fetch(
     `${supabaseUrl}/functions/v1/analyze-ingredients`,
     {
@@ -98,6 +103,7 @@ export async function analyzeIngredients(imageFile) {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${supabaseKey}`,
+        ...extraHeaders,
       },
       body: JSON.stringify({ imageBase64: base64, mediaType }),
     },
