@@ -85,6 +85,7 @@ function LoadingState({ imagePreview }) {
 // ── Error state ────────────────────────────────────────────────────────────
 function ErrorState({ error, onRetry }) {
   const isLimitError = error === 'scan_limit_reached';
+  const isOverloaded = typeof error === 'string' && error.toLowerCase().includes('high demand');
 
   return (
     <motion.div
@@ -102,7 +103,7 @@ function ErrorState({ error, onRetry }) {
           border: `1px solid ${isLimitError ? 'rgba(45,212,191,0.2)' : 'rgba(239,68,68,0.2)'}`,
         }}
       >
-        {isLimitError ? '🔒' : '⚠'}
+        {isLimitError ? '🔒' : isOverloaded ? '⏳' : '⚠'}
       </div>
       <div className="space-y-2 max-w-sm">
         <p className="text-zinc-100 font-semibold text-lg">

@@ -258,7 +258,7 @@ serve(async (req) => {
       }
     }
 
-    // ── 5. Call Claude ─────────────────────────────────────────────────────
+    // ── 5. Call Claude (with retry on 429 / 529) ──────────────────────────
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY")
     if (!apiKey) {
       console.error(`[${requestId}] ANTHROPIC_API_KEY missing`)
@@ -268,48 +268,76 @@ serve(async (req) => {
       )
     }
 
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), CLAUDE_REQUEST_TIMEOUT_MS)
+    const claudeBody = JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
+          { type: "text", text: PROMPT },
+        ],
+      }],
+    })
 
-    let claudeRes: Response
-    try {
-      claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 1024,
-          messages: [{
-            role: "user",
-            content: [
-              { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
-              { type: "text", text: PROMPT },
-            ],
-          }],
-        }),
-      })
-    } catch (err) {
-      const aborted = (err as { name?: string })?.name === "AbortError"
-      console.error(`[${requestId}] claude fetch failed (aborted=${aborted}):`, err)
-      return jsonResponse(
-        { error: aborted ? "Analysis timed out. Please try again." : "Service temporarily unavailable." },
-        { status: aborted ? 504 : 502, corsHeaders: cors.headers },
-      )
-    } finally {
+    // Retry up to 2 attempts on Anthropic rate-limit (429) or overload (529).
+    // Each attempt gets its own timeout. Wait grows: 3s → 6s.
+    // Total worst-case: ~10s call + 3s wait + ~10s call = well within 30s edge limit.
+    const MAX_ATTEMPTS = 2
+    let claudeRes: Response | null = null
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), CLAUDE_REQUEST_TIMEOUT_MS)
+
+      try {
+        claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: claudeBody,
+        })
+      } catch (err) {
+        clearTimeout(timer)
+        const aborted = (err as { name?: string })?.name === "AbortError"
+        console.error(`[${requestId}] claude fetch failed attempt=${attempt} aborted=${aborted}:`, err)
+        if (attempt === MAX_ATTEMPTS) {
+          return jsonResponse(
+            { error: aborted ? "Analysis timed out. Please try again." : "Service temporarily unavailable." },
+            { status: aborted ? 504 : 502, corsHeaders: cors.headers },
+          )
+        }
+        await new Promise(r => setTimeout(r, 3000 * attempt))
+        continue
+      }
       clearTimeout(timer)
+
+      // Retryable Anthropic statuses: 429 (rate limit) and 529 (overloaded)
+      if ((claudeRes.status === 429 || claudeRes.status === 529) && attempt < MAX_ATTEMPTS) {
+        const retryAfter = claudeRes.headers.get("retry-after")
+        const waitMs = retryAfter ? Math.min(parseInt(retryAfter) * 1000, 6000) : 3000 * attempt
+        console.warn(`[${requestId}] claude ${claudeRes.status} — waiting ${waitMs}ms before retry (attempt ${attempt})`)
+        await new Promise(r => setTimeout(r, waitMs))
+        continue
+      }
+
+      break
     }
 
-    if (!claudeRes.ok) {
-      const detail = await claudeRes.text().catch(() => "")
-      console.error(`[${requestId}] claude non-OK ${claudeRes.status}:`, detail.slice(0, 500))
+    if (!claudeRes!.ok) {
+      const status = claudeRes!.status
+      const detail = await claudeRes!.text().catch(() => "")
+      console.error(`[${requestId}] claude non-OK ${status}:`, detail.slice(0, 500))
+      const userMsg = (status === 429 || status === 529)
+        ? "We're seeing high demand right now. Wait a moment and try again."
+        : "Analysis failed. Please try again."
       return jsonResponse(
-        { error: "Analysis failed. Please try again." },
-        { status: 502, corsHeaders: cors.headers },
+        { error: userMsg },
+        { status: status === 429 ? 429 : 502, corsHeaders: cors.headers },
       )
     }
 
