@@ -84,6 +84,8 @@ function LoadingState({ imagePreview }) {
 
 // ── Error state ────────────────────────────────────────────────────────────
 function ErrorState({ error, onRetry }) {
+  const isLimitError = error === 'scan_limit_reached';
+
   return (
     <motion.div
       key="error"
@@ -96,28 +98,68 @@ function ErrorState({ error, onRetry }) {
       <div
         className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl"
         style={{
-          background: 'rgba(239,68,68,0.08)',
-          border: '1px solid rgba(239,68,68,0.2)',
+          background: isLimitError ? 'rgba(45,212,191,0.08)' : 'rgba(239,68,68,0.08)',
+          border: `1px solid ${isLimitError ? 'rgba(45,212,191,0.2)' : 'rgba(239,68,68,0.2)'}`,
         }}
       >
-        ⚠
+        {isLimitError ? '🔒' : '⚠'}
       </div>
       <div className="space-y-2 max-w-sm">
-        <p className="text-zinc-100 font-semibold text-lg">Analysis Failed</p>
-        <p className="text-zinc-500 text-sm leading-relaxed">{error}</p>
+        <p className="text-zinc-100 font-semibold text-lg">
+          {isLimitError ? "You've used your 3 free scans" : 'Analysis Failed'}
+        </p>
+        <p className="text-zinc-500 text-sm leading-relaxed">
+          {isLimitError
+            ? 'Join the waitlist to get 10 free scans when we launch the full version.'
+            : error}
+        </p>
       </div>
-      <motion.button
-        onClick={onRetry}
-        className="px-6 py-3 rounded-xl text-zinc-200 font-medium text-sm cursor-pointer transition-colors"
-        style={{
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)',
-        }}
-        whileHover={{ background: 'rgba(255,255,255,0.09)' }}
-        whileTap={{ scale: 0.97 }}
-      >
-        Try Again
-      </motion.button>
+
+      <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+        {isLimitError ? (
+          <>
+            <motion.a
+              href="https://www.ingrediscan.in/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full px-6 py-3 rounded-xl font-semibold text-sm text-center"
+              style={{ background: '#2dd4bf', color: '#000', display: 'block' }}
+              whileHover={{ opacity: 0.9 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              Join the waitlist →
+            </motion.a>
+            <motion.a
+              href="https://www.ingrediscan.in/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full px-6 py-3 rounded-xl text-zinc-400 font-medium text-sm text-center"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                display: 'block',
+              }}
+              whileHover={{ background: 'rgba(255,255,255,0.08)' }}
+              whileTap={{ scale: 0.97 }}
+            >
+              Visit ingrediscan.in
+            </motion.a>
+          </>
+        ) : (
+          <motion.button
+            onClick={onRetry}
+            className="px-6 py-3 rounded-xl text-zinc-200 font-medium text-sm cursor-pointer"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}
+            whileHover={{ background: 'rgba(255,255,255,0.09)' }}
+            whileTap={{ scale: 0.97 }}
+          >
+            Try Again
+          </motion.button>
+        )}
+      </div>
     </motion.div>
   );
 }
@@ -183,7 +225,8 @@ export default function App() {
       });
     } catch (err) {
       // Server confirmed the free limit was hit (user bypassed localStorage)
-      if (err.code === 'scan_limit_reached') {
+      // Check both err.code (typed error) and err.message (fallback)
+      if (err.code === 'scan_limit_reached' || err.message === 'scan_limit_reached') {
         track('scan_limit_reached', { source: 'server', scans_used: scanCount });
         localStorage.setItem('ingrediscan_scan_count', '3');
         setScanCount(3);
