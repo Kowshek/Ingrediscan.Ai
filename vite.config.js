@@ -29,6 +29,11 @@ export default defineConfig({
       exclude: [
         'src/**/*.test.{js,jsx,ts}',
         '**/node_modules/**',
+        // Init/config files — no logic to unit test
+        'src/lib/analytics.js',
+        'src/lib/supabase.js',
+        // Deno runtime file — not runnable in Node/jsdom
+        'supabase/functions/_shared/rate-limit.ts',
       ],
       thresholds: {
         lines: 80,
