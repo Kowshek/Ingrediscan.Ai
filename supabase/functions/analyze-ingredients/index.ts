@@ -345,15 +345,17 @@ serve(async (req) => {
       }
 
       if (!validated.value.error) {
-        // Valid analysis — save to cache
+        // Valid analysis — save to cache.
+        // flagged stores the FULL analysis object (score + ingredients + rationale)
+        // so the frontend cache-hit path can return it directly.
+        const ingredients = validated.value.ingredients ?? []
         dbOps.push(
           adminClient.from("scans").upsert(
             {
               ingredient_hash: imageHash,
+              ingredients_raw: ingredients.map((i: { name: string }) => i.name).join(", "),
               score: validated.value.score,
-              flagged: validated.value.ingredients ?? [],
-              score_rationale: validated.value.score_rationale ?? null,
-              low_confidence_warning: validated.value.low_confidence_warning ?? null,
+              flagged: validated.value,
               scan_count: 1,
               created_at: now,
               updated_at: now,

@@ -28,7 +28,7 @@ export function buildCorsHeaders(origin: string | null): {
     allowed,
     headers: {
       'Access-Control-Allow-Origin': allowed ? origin! : 'null',
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-dev-bypass',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Max-Age': '86400',
       'Vary': 'Origin',
