@@ -383,6 +383,14 @@ export default function LimitReached() {
           <p style={{ color: '#F1F5F9', fontSize: '12px' }}>
             Built by Kowshek &amp; Kavin · Tamil Nadu, India
           </p>
+          <a
+            href="https://www.ingrediscan.in/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#94A3B8', fontSize: '11px', textDecoration: 'none', marginTop: '6px', display: 'inline-block' }}
+          >
+            Privacy Policy
+          </a>
         </motion.footer>
       </motion.div>
     </div>
