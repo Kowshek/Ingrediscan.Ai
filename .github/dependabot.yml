@@ -7,6 +7,21 @@ updates:
       day: monday
       time: "06:00"
     open-pull-requests-limit: 5
+    ignore:
+      # Major version bumps on test/build tooling need manual vetting —
+      # they routinely have breaking config changes (vitest 2→4, vite 5→6, etc.)
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitest/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitejs/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@playwright/test"
+        update-types: ["version-update:semver-major"]
     groups:
       react:
         patterns:
