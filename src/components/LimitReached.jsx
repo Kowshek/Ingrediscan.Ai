@@ -32,11 +32,12 @@ const stagger = {
 const PILLS = ['🔓 10 Free Scans at Launch', '📋 Scan History', '⚡ Faster Results'];
 
 const FIELDS = [
-  { id: 'name',     label: 'Name',                                              type: 'text',  placeholder: 'Your name' },
-  { id: 'email',    label: 'Email',                                             type: 'email', placeholder: 'you@example.com' },
-  { id: 'products', label: 'What products would you scan first?',               type: 'text',  placeholder: 'e.g. protein powder, snacks…' },
-  { id: 'source',   label: 'How did you hear about us?',                        type: 'text',  placeholder: 'e.g. Instagram, a friend…' },
-  { id: 'barrier',  label: "What's stopping you from paying ₹99/month for this?", type: 'text', placeholder: 'Be honest — it helps us' },
+  { id: 'name',     label: 'Name',                                                 type: 'text',  placeholder: 'Your name',                    required: true  },
+  { id: 'email',    label: 'Email',                                                type: 'email', placeholder: 'you@example.com',              required: true  },
+  { id: 'mobile',   label: 'Mobile Number',                                        type: 'tel',   placeholder: 'Your phone number',            required: false },
+  { id: 'source',   label: 'Where did you hear from us?',                          type: 'text',  placeholder: 'e.g. Instagram, a friend…',    required: true  },
+  { id: 'products', label: 'What product would you scan first?',                   type: 'text',  placeholder: 'e.g. protein powder, snacks…', required: false },
+  { id: 'barrier',  label: "What's stopping you from paying ₹99/month for this?",  type: 'text',  placeholder: 'Be honest — it helps us',      required: false },
 ];
 
 const INPUT_STYLE = {
@@ -80,11 +81,12 @@ function WaitlistForm({ initialData }) {
       });
       // Backup to Supabase — fire-and-forget, never blocks the UI
       supabase.from('waitlist').insert({
-        name: fields.name,
-        email: fields.email,
-        products: fields.products,
-        source: fields.source,
-        blocker: fields.barrier,
+        name:     fields.name,
+        email:    fields.email,
+        mobile:   fields.mobile   || null,
+        source:   fields.source,
+        products: fields.products || null,
+        blocker:  fields.barrier  || null,
       }).then(({ error }) => { if (error) console.error(error); });
       track('waitlist_submitted', { source: fields.source || 'unknown' });
       setStatus('success');
@@ -118,7 +120,7 @@ function WaitlistForm({ initialData }) {
       transition={{ duration: 0.4 }}
       style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
     >
-      {FIELDS.map(({ id, label, type, placeholder }) => (
+      {FIELDS.map(({ id, label, type, placeholder, required }) => (
         <div key={id}>
           <label htmlFor={id} style={LABEL_STYLE}>{label}</label>
           <input
@@ -126,7 +128,7 @@ function WaitlistForm({ initialData }) {
             type={type}
             placeholder={placeholder}
             value={fields[id]}
-            required={id === 'name' || id === 'email'}
+            required={required}
             onChange={(e) => setFields((p) => ({ ...p, [id]: e.target.value }))}
             onFocus={() => setFocused(id)}
             onBlur={() => setFocused(null)}
@@ -169,7 +171,7 @@ function WaitlistForm({ initialData }) {
   );
 }
 
-const EMPTY_FIELDS = { name: '', email: '', products: '', source: '', barrier: '' };
+const EMPTY_FIELDS = { name: '', email: '', mobile: '', source: '', products: '', barrier: '' };
 
 export default function LimitReached() {
   return (
@@ -263,7 +265,7 @@ export default function LimitReached() {
               marginBottom: '16px',
             }}
           >
-            You&apos;ve used your 3 free scans
+            You&apos;ve used your <br></br>3 free scans
           </h1>
           <p
             style={{
@@ -344,9 +346,9 @@ export default function LimitReached() {
               marginBottom: '28px',
             }}
           >
-            Join the waitlist — first users get{' '}
+            Join the waitlist<br></br> first users get{' '}
             <span style={{ fontSize: '1.2em', fontWeight: 800, color: '#4ADE80' }}>10 free scans</span>{' '}
-            at launch. Limited spots.
+            at launch.
           </p>
           <WaitlistForm initialData={EMPTY_FIELDS} />
         </motion.section>

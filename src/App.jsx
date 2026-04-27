@@ -187,7 +187,12 @@ export default function App() {
   const [onboardingDone, setOnboardingDone] = useState(() =>
     localStorage.getItem('onboarding_complete') === 'true'
   );
-  const [phase, setPhase] = useState('idle'); // idle | loading | result | error | limit
+  // ?preview=limit in the URL forces the limit screen (dev convenience only)
+  const [phase, setPhase] = useState(() =>
+    import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'limit'
+      ? 'limit'
+      : 'idle'
+  ); // idle | loading | result | error | limit
   const [result, setResult] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [error, setError] = useState(null);
