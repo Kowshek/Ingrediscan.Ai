@@ -4,8 +4,7 @@ import ScoreCircle from './ScoreCircle';
 import { supabase } from '../lib/supabase';
 
 // ── Star SVG (supports full, half, empty) ─────────────────────────────────
-function StarIcon({ fill = 'empty', size = 26 }) {
-  const id = `half-${Math.random().toString(36).slice(2, 7)}`;
+function StarIcon({ fill = 'empty', size = 26, id = 'half-star' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       {fill === 'half' && (
@@ -76,7 +75,7 @@ function StarRating({ value, onChange }) {
           whileTap={{ scale: 0.88 }}
           transition={{ duration: 0.1 }}
         >
-          <StarIcon fill={getStarFill(i, display)} size={26} />
+          <StarIcon fill={getStarFill(i, display)} size={26} id={`half-star-${i}`} />
         </motion.div>
       ))}
       {value != null && (
