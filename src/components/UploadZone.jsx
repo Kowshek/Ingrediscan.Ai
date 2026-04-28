@@ -34,7 +34,7 @@ function CameraIcon() {
 
 const HINT_TAGS = ['Food labels', 'Skincare', 'Snacks', 'Beverages'];
 
-export default function UploadZone({ onAnalyze }) {
+export default function UploadZone({ onAnalyze, onJoinWaitlist }) {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef(null);
   const cameraRef = useRef(null);
@@ -253,6 +253,36 @@ export default function UploadZone({ onAnalyze }) {
         </svg>
         Ensure ingredient text is clear and well-lit for best results
       </motion.p>
+
+      {/* Waitlist nudge */}
+      {onJoinWaitlist && (
+        <motion.div
+          className="mt-5 flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+        >
+          <motion.button
+            onClick={onJoinWaitlist}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer"
+            style={{
+              background: 'rgba(45,212,191,0.07)',
+              border: '1px solid rgba(45,212,191,0.18)',
+              color: '#2dd4bf',
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+            }}
+            whileHover={{ background: 'rgba(45,212,191,0.13)', borderColor: 'rgba(45,212,191,0.3)' }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
+            </svg>
+            Get 10 free scans at launch
+            <span style={{ opacity: 0.6, fontSize: '12px' }}>→</span>
+          </motion.button>
+        </motion.div>
+      )}
     </motion.div>
   );
 }

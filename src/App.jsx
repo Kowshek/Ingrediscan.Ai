@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import UploadZone from './components/UploadZone';
 import Results from './components/Results';
 import LimitReached from './components/LimitReached';
+import WaitlistPage from './components/WaitlistPage';
 import Onboarding from './components/Onboarding';
 import { analyzeIngredients } from './utils/analyzeImage';
 import { track } from './lib/analytics';
@@ -269,6 +270,10 @@ export default function App() {
     return <LimitReached />;
   }
 
+  if (phase === 'waitlist') {
+    return <WaitlistPage onBack={() => setPhase('idle')} />;
+  }
+
   return (
     <div
       className="min-h-screen"
@@ -323,7 +328,7 @@ export default function App() {
         {/* Content */}
         <AnimatePresence mode="wait">
           {phase === 'idle' && (
-            <UploadZone key="upload" onAnalyze={handleAnalyze} />
+            <UploadZone key="upload" onAnalyze={handleAnalyze} onJoinWaitlist={() => setPhase('waitlist')} />
           )}
           {phase === 'loading' && (
             <LoadingState key="loading" imagePreview={imagePreview} />
@@ -333,6 +338,7 @@ export default function App() {
               key="result"
               result={result}
               onReset={reset}
+              onJoinWaitlist={() => setPhase('waitlist')}
             />
           )}
           {phase === 'error' && (

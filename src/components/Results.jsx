@@ -3,25 +3,126 @@ import { motion } from 'framer-motion';
 import ScoreCircle from './ScoreCircle';
 import { supabase } from '../lib/supabase';
 
+// ── Star SVG (supports full, half, empty) ─────────────────────────────────
+function StarIcon({ fill = 'empty', size = 26 }) {
+  const id = `half-${Math.random().toString(36).slice(2, 7)}`;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {fill === 'half' && (
+        <defs>
+          <clipPath id={id}>
+            <rect x="0" y="0" width="12" height="24" />
+          </clipPath>
+        </defs>
+      )}
+      {/* Empty shell */}
+      <path
+        d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l7.1-1.01L12 2z"
+        fill="#1E293B"
+        stroke="#2D3F55"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      {/* Filled layer */}
+      {(fill === 'full' || fill === 'half') && (
+        <path
+          d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l7.1-1.01L12 2z"
+          fill="#FBBF24"
+          stroke="#FBBF24"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          clipPath={fill === 'half' ? `url(#${id})` : undefined}
+        />
+      )}
+    </svg>
+  );
+}
+
+// ── Star Rating Row ────────────────────────────────────────────────────────
+function StarRating({ value, onChange }) {
+  const [hovered, setHovered] = useState(null);
+
+  const getStarFill = (starIdx, display) => {
+    if (display >= starIdx + 1) return 'full';
+    if (display >= starIdx + 0.5) return 'half';
+    return 'empty';
+  };
+
+  const handleMouseMove = (e, starIdx) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    setHovered(starIdx + (x < rect.width / 2 ? 0.5 : 1));
+  };
+
+  const handleClick = (e, starIdx) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    onChange(starIdx + (x < rect.width / 2 ? 0.5 : 1));
+  };
+
+  const display = hovered ?? value ?? 0;
+
+  return (
+    <div
+      style={{ display: 'flex', gap: '4px', alignItems: 'center' }}
+      onMouseLeave={() => setHovered(null)}
+    >
+      {[0, 1, 2, 3, 4].map((i) => (
+        <motion.div
+          key={i}
+          style={{ cursor: 'pointer', lineHeight: 0 }}
+          onMouseMove={(e) => handleMouseMove(e, i)}
+          onClick={(e) => handleClick(e, i)}
+          whileTap={{ scale: 0.88 }}
+          transition={{ duration: 0.1 }}
+        >
+          <StarIcon fill={getStarFill(i, display)} size={26} />
+        </motion.div>
+      ))}
+      {value != null && (
+        <span style={{ fontSize: '13px', color: '#64748B', marginLeft: '6px' }}>
+          {value % 1 === 0 ? `${value}.0` : value} / 5
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Feedback box (stars + optional text) ──────────────────────────────────
 function SuggestionsBox({ score }) {
   const [text, setText] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [stars, setStars] = useState(null);
+  const [starsSubmitted, setStarsSubmitted] = useState(false);
+  const [textSubmitted, setTextSubmitted] = useState(false);
 
-  const handleSubmit = () => {
-    if (!text.trim()) return;
-    setSubmitted(true);
+  const handleStarClick = (val) => {
+    setStars(val);
+    setStarsSubmitted(true);
     supabase.from('feedback').insert({
-      suggestion: text.trim(),
       score,
+      stars: val,
+      suggestion: null,
     }).then(({ error }) => { if (error) console.error(error); });
   };
+
+  const handleTextSubmit = () => {
+    if (!text.trim()) return;
+    setTextSubmitted(true);
+    supabase.from('feedback').insert({
+      score,
+      stars: starsSubmitted ? stars : null,
+      suggestion: text.trim(),
+    }).then(({ error }) => { if (error) console.error(error); });
+  };
+
+  const allDone = starsSubmitted && textSubmitted;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.5 }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
     >
       <p style={{
         fontSize: '12px',
@@ -33,53 +134,68 @@ function SuggestionsBox({ score }) {
         Got feedback?
       </p>
 
-      {submitted ? (
+      {allDone ? (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           style={{ fontSize: '14px', color: '#4ADE80' }}
         >
-          Thanks for the feedback 
+          Thanks for the feedback 🙏
         </motion.p>
       ) : (
         <>
-          <textarea
-            rows={3}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="What would make this more useful for you?"
-            style={{
-              width: '100%',
-              background: '#1E293B',
-              border: '1px solid #2D3F55',
-              borderRadius: '10px',
-              padding: '12px 16px',
-              color: '#F1F5F9',
-              fontSize: '14px',
-              fontFamily: "'DM Sans', system-ui, sans-serif",
-              resize: 'none',
-              outline: 'none',
-              boxSizing: 'border-box',
-            }}
-          />
-          <motion.button
-            onClick={handleSubmit}
-            style={{
-              alignSelf: 'flex-start',
-              padding: '8px 20px',
-              borderRadius: '8px',
-              border: '1px solid #2D3F55',
-              background: 'transparent',
-              color: '#94A3B8',
-              fontSize: '13px',
-              fontFamily: "'DM Sans', system-ui, sans-serif",
-              cursor: 'pointer',
-            }}
-            whileHover={{ borderColor: '#475569', color: '#CBD5E1' }}
-            whileTap={{ scale: 0.97 }}
-          >
-            Send feedback
-          </motion.button>
+          {/* Stars row */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <p style={{ fontSize: '12px', color: '#475569', margin: 0 }}>
+              {starsSubmitted ? `You rated ${stars % 1 === 0 ? `${stars}.0` : stars} / 5 ✓` : 'Rate the analysis'}
+            </p>
+            {!starsSubmitted && (
+              <StarRating value={stars} onChange={handleStarClick} />
+            )}
+          </div>
+
+          {/* Text area */}
+          {!textSubmitted && (
+            <>
+              <textarea
+                rows={3}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="What would make this more useful for you?"
+                style={{
+                  width: '100%',
+                  background: '#1E293B',
+                  border: '1px solid #2D3F55',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  color: '#F1F5F9',
+                  fontSize: '14px',
+                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                  resize: 'none',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <motion.button
+                onClick={handleTextSubmit}
+                style={{
+                  alignSelf: 'flex-start',
+                  padding: '8px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #2D3F55',
+                  background: 'transparent',
+                  color: '#94A3B8',
+                  fontSize: '13px',
+                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                  cursor: 'pointer',
+                }}
+                whileHover={{ borderColor: '#475569', color: '#CBD5E1' }}
+                whileTap={{ scale: 0.97 }}
+              >
+                Send feedback
+              </motion.button>
+            </>
+          )}
         </>
       )}
     </motion.div>
@@ -205,7 +321,7 @@ function SectionLabel({ children }) {
   );
 }
 
-export default function Results({ result, onReset }) {
+export default function Results({ result, onReset, onJoinWaitlist }) {
   // const [feedback, setFeedback] = useState(null); // null | 'up' | 'down'
 
   const {
@@ -312,6 +428,44 @@ export default function Results({ result, onReset }) {
           </div>
         </div>
       </SectionCard>
+
+      {/* Waitlist CTA — between score and ingredients so it's seen without scrolling */}
+      {onJoinWaitlist && (
+        <motion.div
+          className="rounded-3xl p-6"
+          style={{
+            background: 'linear-gradient(135deg, rgba(45,212,191,0.07) 0%, rgba(56,189,248,0.07) 100%)',
+            border: '1px solid rgba(45,212,191,0.15)',
+          }}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.12 }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#2dd4bf' }}>
+            Want more scans?
+          </p>
+          <p className="text-sm leading-relaxed mb-4" style={{ color: '#94A3B8' }}>
+            Join the waitlist — first users get{' '}
+            <span style={{ color: '#4ADE80', fontWeight: 700 }}>10 free scans</span>{' '}
+            at launch. Limited spots.
+          </p>
+          <motion.button
+            onClick={onJoinWaitlist}
+            className="w-full py-3 rounded-xl text-sm font-semibold cursor-pointer"
+            style={{
+              background: 'rgba(45,212,191,0.12)',
+              border: '1px solid rgba(45,212,191,0.25)',
+              color: '#2dd4bf',
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+            }}
+            whileHover={{ background: 'rgba(45,212,191,0.2)', borderColor: 'rgba(45,212,191,0.4)' }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+          >
+            Join the Waitlist →
+          </motion.button>
+        </motion.div>
+      )}
 
       {/* Ingredients to Watch */}
       <SectionCard delay={0.15}>
