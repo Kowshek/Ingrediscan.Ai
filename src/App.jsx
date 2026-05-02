@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as Sentry from '@sentry/react';
 import UploadZone from './components/UploadZone';
 import Results from './components/Results';
 import LimitReached from './components/LimitReached';
 import WaitlistPage from './components/WaitlistPage';
 import Onboarding from './components/Onboarding';
+import AppErrorFallback from './components/AppErrorFallback';
 import { analyzeIngredients } from './utils/analyzeImage';
 import { track } from './lib/analytics';
 import './App.css';
@@ -183,8 +185,11 @@ function Logo() {
   );
 }
 
-// ── App ────────────────────────────────────────────────────────────────────
-export default function App() {
+// ── App (wrapped in Sentry Error Boundary) ────────────────────────────────
+// If any unhandled JS exception reaches the root, Sentry captures it and the
+// user sees AppErrorFallback instead of a white screen.
+// The boundary is outside all state, so it catches render errors too.
+function AppInner() {
   const [onboardingDone, setOnboardingDone] = useState(() =>
     localStorage.getItem('onboarding_complete') === 'true'
   );
@@ -347,5 +352,13 @@ export default function App() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Sentry.ErrorBoundary fallback={AppErrorFallback} showDialog={false}>
+      <AppInner />
+    </Sentry.ErrorBoundary>
   );
 }

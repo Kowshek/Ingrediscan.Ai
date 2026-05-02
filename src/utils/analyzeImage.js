@@ -31,7 +31,7 @@ function isValidAnalysis(value) {
   for (const ing of value.ingredients) {
     if (typeof ing !== 'object' || ing === null) return false;
     if (typeof ing.name !== 'string' || ing.name.length === 0 || ing.name.length > 200) return false;
-    if (ing.status !== 'harmful' && ing.status !== 'moderate') return false;
+    if (ing.status !== 'harmful' && ing.status !== 'moderate' && ing.status !== 'caution' && ing.status !== 'safe') return false;
     if (typeof ing.reason !== 'string' || ing.reason.length > 500) return false;
   }
   return true;
@@ -137,21 +137,8 @@ export async function analyzeIngredients(imageFile) {
     );
   }
 
-  // Cache miss — persist for future lookups (fire-and-forget).
-  if (hash) {
-    supabase
-      .from('scans')
-      .insert({
-        ingredient_hash: hash,
-        ingredients_raw: parsed.ingredients.map((i) => i.name).join(', '),
-        score: parsed.score,
-        flagged: parsed,
-        scan_count: 1,
-      })
-      .then(({ error: insertErr }) => {
-        if (insertErr) console.error('[analyzeImage] cache insert failed:', insertErr);
-      });
-  }
+  // Note: caching is handled server-side by the edge function (content-hash dedup).
+  // No client-side insert needed — it was creating duplicate rows.
 
   return parsed;
 }

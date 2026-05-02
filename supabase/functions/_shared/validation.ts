@@ -115,9 +115,10 @@ export type AnalysisResult = {
   score: number
   score_rationale: string | null
   low_confidence_warning: string | null
+  all_ingredients: string[]
   ingredients: Array<{
     name: string
-    status: 'harmful' | 'moderate'
+    status: 'harmful' | 'moderate' | 'caution' | 'safe'
     reason: string
     concern_type: string
   }>
@@ -156,8 +157,8 @@ export function validateAnalysisShape(value: unknown): { ok: true; value: Analys
     if (typeof i.name !== 'string' || i.name.length === 0 || i.name.length > 200) {
       return { ok: false, error: 'ingredient.name invalid.' }
     }
-    if (i.status !== 'harmful' && i.status !== 'moderate') {
-      return { ok: false, error: `ingredient.status must be harmful|moderate, got ${i.status}.` }
+    if (i.status !== 'harmful' && i.status !== 'moderate' && i.status !== 'caution' && i.status !== 'safe') {
+      return { ok: false, error: `ingredient.status must be harmful|moderate|caution|safe, got ${i.status}.` }
     }
     if (typeof i.reason !== 'string' || i.reason.length > 500) {
       return { ok: false, error: 'ingredient.reason invalid.' }
@@ -168,6 +169,21 @@ export function validateAnalysisShape(value: unknown): { ok: true; value: Analys
   }
   if (v.low_confidence_warning !== null && v.low_confidence_warning !== undefined && typeof v.low_confidence_warning !== 'string') {
     return { ok: false, error: 'low_confidence_warning must be string|null.' }
+  }
+  // all_ingredients is optional (old responses won't have it) — if present, must be string[].
+  if (v.all_ingredients !== undefined && v.all_ingredients !== null) {
+    if (!Array.isArray(v.all_ingredients)) {
+      return { ok: false, error: 'all_ingredients must be an array.' }
+    }
+    for (const name of v.all_ingredients) {
+      if (typeof name !== 'string' || name.length === 0 || name.length > 300) {
+        return { ok: false, error: 'all_ingredients entry must be a non-empty string ≤300 chars.' }
+      }
+    }
+  }
+  // Normalise: guarantee all_ingredients is always an array on the result object.
+  if (!Array.isArray(v.all_ingredients)) {
+    v.all_ingredients = (v.ingredients as Array<{name:string}>).map(i => i.name)
   }
   return { ok: true, value: v as unknown as AnalysisResult }
 }

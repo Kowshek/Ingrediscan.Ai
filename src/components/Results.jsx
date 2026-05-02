@@ -135,6 +135,7 @@ function SuggestionsBox({ score }) {
 const STATUS_MAP = {
   harmful:  { label: 'Harmful',  dotCls: 'bg-red-500',    badgeStyle: { background: 'rgba(255,68,68,0.12)',   color: '#FF4444', border: '1px solid rgba(255,68,68,0.25)'   } },
   moderate: { label: 'Moderate', dotCls: 'bg-amber-400',  badgeStyle: { background: 'rgba(255,179,71,0.12)',  color: '#FFB347', border: '1px solid rgba(255,179,71,0.25)'  } },
+  caution:  { label: 'Caution',  dotCls: 'bg-yellow-400', badgeStyle: { background: 'rgba(250,204,21,0.12)',  color: '#FACC15', border: '1px solid rgba(250,204,21,0.25)'  } },
   safe:     { label: 'Safe',     dotCls: 'bg-emerald-400', badgeStyle: { background: 'rgba(74,222,128,0.1)',   color: '#4ADE80', border: '1px solid rgba(74,222,128,0.2)'   } },
 };
 
@@ -163,13 +164,14 @@ function SectionLabel({ children }) {
 }
 
 export default function Results({ result, onReset, onJoinWaitlist }) {
-  const { score, ingredients = [], score_rationale, low_confidence_warning } = result;
+  const { score, ingredients = [], all_ingredients = [], score_rationale, low_confidence_warning } = result;
 
   const harmful     = ingredients.filter((i) => i.status === 'harmful');
   const moderate    = ingredients.filter((i) => i.status === 'moderate');
-  const safe        = ingredients.filter((i) => i.status === 'safe');
+  const caution     = ingredients.filter((i) => i.status === 'caution');
   const problematic = [...harmful, ...moderate];
-  const allSafe     = problematic.length === 0;
+  const safeCount   = Math.max(0, all_ingredients.length - ingredients.length);
+  const allClear    = problematic.length === 0;
 
   return (
     <motion.div className="w-full space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
@@ -194,9 +196,14 @@ export default function Results({ result, onReset, onJoinWaitlist }) {
               <span className="rounded-full font-medium" style={{ fontSize: '13px', padding: '6px 14px', background: 'rgba(251,146,60,0.2)', color: '#FB923C', border: '1px solid rgba(251,146,60,0.4)' }}>
                 🟠 {moderate.length} Moderate
               </span>
-              {safe.length > 0 && (
+              {caution.length > 0 && (
+                <span className="rounded-full font-medium" style={{ fontSize: '13px', padding: '6px 14px', background: 'rgba(250,204,21,0.15)', color: '#FACC15', border: '1px solid rgba(250,204,21,0.35)' }}>
+                  🟡 {caution.length} Caution
+                </span>
+              )}
+              {safeCount > 0 && (
                 <span className="rounded-full font-medium" style={{ fontSize: '13px', padding: '6px 14px', background: 'rgba(74,222,128,0.2)', color: '#4ADE80', border: '1px solid rgba(74,222,128,0.4)' }}>
-                  🟢 {safe.length} Safe
+                  🟢 {safeCount} Safe
                 </span>
               )}
             </motion.div>
@@ -227,13 +234,13 @@ export default function Results({ result, onReset, onJoinWaitlist }) {
         </motion.div>
       )}
 
-      {/* Ingredients to Watch */}
+      {/* Ingredients to Watch — harmful + moderate only */}
       <SectionCard delay={0.15}>
         <SectionLabel>Ingredients to Watch</SectionLabel>
-        {allSafe ? (
+        {allClear ? (
           <motion.div className="flex items-center gap-3 px-3 py-3 rounded-xl" style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)' }} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <span style={{ color: '#4ADE80', fontSize: '15px' }}>✓</span>
-            <p className="text-sm font-medium" style={{ color: '#4ADE80' }}>No concerning ingredients found. This product looks clean.</p>
+            <p className="text-sm font-medium" style={{ color: '#4ADE80' }}>No high-concern ingredients found.</p>
           </motion.div>
         ) : (
           <motion.div className="space-y-1" variants={listVariants} initial="hidden" animate="visible">
@@ -257,6 +264,32 @@ export default function Results({ result, onReset, onJoinWaitlist }) {
           </motion.div>
         )}
       </SectionCard>
+
+      {/* Worth Noting — caution items only */}
+      {caution.length > 0 && (
+        <SectionCard delay={0.22}>
+          <SectionLabel>Worth Noting — Regular Use Concerns</SectionLabel>
+          <motion.div className="space-y-1" variants={listVariants} initial="hidden" animate="visible">
+            {caution.map((ing, i) => {
+              const s = STATUS_MAP.caution;
+              const concern = ing.concern_type && ing.concern_type !== 'none' ? CONCERN_MAP[ing.concern_type] ?? null : null;
+              return (
+                <motion.div key={`${ing.name}-${i}`} variants={itemVariants} className="flex items-start gap-3 px-3 py-3 rounded-xl transition-colors duration-150 hover:bg-white/[0.02]">
+                  <span className={`w-2 h-2 rounded-full mt-[5px] shrink-0 ${s.dotCls}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-zinc-200" style={{ fontSize: '15px', wordBreak: 'break-word' }}>{ing.name}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0" style={s.badgeStyle}>{s.label}</span>
+                      {concern && <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0" style={concern.style}>{concern.label}</span>}
+                    </div>
+                    {ing.reason && <p className="text-sm text-zinc-500 mt-1 leading-relaxed">{ing.reason}</p>}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </SectionCard>
+      )}
 
       <p className="text-xs text-zinc-600 text-center px-2">AI analysis is for reference only — not medical advice.</p>
 

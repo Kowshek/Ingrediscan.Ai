@@ -1,10 +1,38 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // Uploads source maps to Sentry on production builds so stack traces
+    // show real file/line numbers instead of minified garbage.
+    // Only active when SENTRY_AUTH_TOKEN is set (Vercel CI env var).
+    // Never runs locally — doesn't slow down dev builds.
+    ...(process.env.SENTRY_AUTH_TOKEN
+      ? [
+          sentryVitePlugin({
+            org: process.env.SENTRY_ORG,
+            project: process.env.SENTRY_PROJECT,
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            sourcemaps: {
+              // Upload maps to Sentry, then delete them from the dist output
+              // so they aren't publicly accessible on Vercel.
+              filesToDeleteAfterUpload: ['dist/**/*.map'],
+            },
+            telemetry: false,
+          }),
+        ]
+      : []),
+  ],
+  // Source maps are generated on every build. The Sentry plugin deletes them
+  // from the dist output in production — they only exist long enough to upload.
+  build: {
+    sourcemap: true,
+  },
   esbuild: {
     // Use the automatic JSX runtime so test files don't need to import React.
     jsx: 'automatic',
