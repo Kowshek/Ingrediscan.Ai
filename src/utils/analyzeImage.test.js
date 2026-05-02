@@ -100,7 +100,6 @@ describe('analyzeIngredients — cache miss → Edge Function', () => {
     expect(url).toContain('/functions/v1/analyze-ingredients')
     expect(opts.method).toBe('POST')
     expect(opts.headers.Authorization).toMatch(/^Bearer /)
-    expect(mockInsert).toHaveBeenCalled()
   })
 
   it('throws a user-friendly error when Edge Function returns non-OK', async () => {

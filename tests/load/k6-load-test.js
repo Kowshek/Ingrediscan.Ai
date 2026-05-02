@@ -228,7 +228,7 @@ export function setup() {
 }
 
 // ── Teardown — runs once after all VUs finish ──────────────────────────────
-export function teardown(data) {
+export function teardown() {
   console.log(`
 Load test complete.
 

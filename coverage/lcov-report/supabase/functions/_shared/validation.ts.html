@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">90.99% </span>
+                <span class="strong">84.67% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>101/111</span>
+                <span class='fraction'>105/124</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">90% </span>
+                <span class="strong">87.87% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>54/60</span>
+                <span class='fraction'>58/66</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">90.99% </span>
+                <span class="strong">84.67% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>101/111</span>
+                <span class='fraction'>105/124</span>
             </div>
         
             
@@ -236,7 +236,23 @@
 <a name='L171'></a><a href='#L171'>171</a>
 <a name='L172'></a><a href='#L172'>172</a>
 <a name='L173'></a><a href='#L173'>173</a>
-<a name='L174'></a><a href='#L174'>174</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -345,6 +361,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -407,6 +424,21 @@
 <span class="cline-any cline-yes">12x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// Pure helpers extracted from analyze-ingredients/index.ts so they're unit-testable
@@ -439,7 +471,7 @@ export function buildCorsHeaders(origin: string | null): {
     allowed,
     headers: {
       'Access-Control-Allow-Origin': allowed ? origin! : 'null',
-      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-dev-bypass',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Max-Age': '86400',
       'Vary': 'Origin',
@@ -526,9 +558,10 @@ export type AnalysisResult = {
   score: number
   score_rationale: string | null
   low_confidence_warning: string | null
+  all_ingredients: string[]
   ingredients: Array&lt;{
     name: string
-    status: 'harmful' | 'moderate'
+    status: 'harmful' | 'moderate' | 'caution' | 'safe'
     reason: string
     concern_type: string
   }&gt;
@@ -567,8 +600,8 @@ export function validateAnalysisShape(value: unknown): { ok: true; value: Analys
     if (typeof i.name !== 'string' || i.name.length === 0 || i.name.length &gt; 200) {
       return { ok: false, error: 'ingredient.name invalid.' }
     }
-    if (i.status !== 'harmful' &amp;&amp; i.status !== 'moderate') {
-      return { ok: false, error: `ingredient.status must be harmful|moderate, got ${i.status}.` }
+    if (i.status !== 'harmful' &amp;&amp; i.status !== 'moderate' &amp;&amp; i.status !== 'caution' &amp;&amp; i.status !== 'safe') {
+      return { ok: false, error: `ingredient.status must be harmful|moderate|caution|safe, got ${i.status}.` }
     }
     if (typeof i.reason !== 'string' || i.reason.length &gt; 500) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
 <span class="cstat-no" title="statement not covered" >      return { ok: false, error: 'ingredient.reason invalid.' }</span>
@@ -580,6 +613,21 @@ export function validateAnalysisShape(value: unknown): { ok: true; value: Analys
   if (v.low_confidence_warning !== null &amp;&amp; v.low_confidence_warning !== <span class="branch-0 cbranch-no" title="branch not covered" >undefined &amp;&amp; typeof v.low_confidence_warning !== 'string') <span class="branch-0 cbranch-no" title="branch not covered" >{</span></span>
 <span class="cstat-no" title="statement not covered" >    return { ok: false, error: 'low_confidence_warning must be string|null.' }</span>
 <span class="cstat-no" title="statement not covered" >  }</span>
+  // all_ingredients is optional (old responses won't have it) — if present, must be string[].
+  if (v.all_ingredients !== <span class="branch-0 cbranch-no" title="branch not covered" >undefined &amp;&amp; v.all_ingredients !== null) <span class="branch-0 cbranch-no" title="branch not covered" >{</span></span>
+<span class="cstat-no" title="statement not covered" >    if (!Array.isArray(v.all_ingredients)) {</span>
+<span class="cstat-no" title="statement not covered" >      return { ok: false, error: 'all_ingredients must be an array.' }</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >    for (const name of v.all_ingredients) {</span>
+<span class="cstat-no" title="statement not covered" >      if (typeof name !== 'string' || name.length === 0 || name.length &gt; 300) {</span>
+<span class="cstat-no" title="statement not covered" >        return { ok: false, error: 'all_ingredients entry must be a non-empty string ≤300 chars.' }</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+  // Normalise: guarantee all_ingredients is always an array on the result object.
+  if (!Array.isArray(v.all_ingredients)) {
+    v.all_ingredients = (v.ingredients as Array&lt;{name:string}&gt;).map(i =&gt; i.name)
+  }
   return { ok: true, value: v as unknown as AnalysisResult }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -589,7 +637,7 @@ export function validateAnalysisShape(value: unknown): { ok: true; value: Analys
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-24T11:40:55.864Z
+                at 2026-05-02T12:26:22.121Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
