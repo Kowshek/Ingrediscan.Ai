@@ -578,13 +578,6 @@ serve(async (req) => {
             { onConflict: "ingredient_hash" },
           ),
         )
-                cache_read_tokens:     usage?.cache_read_input_tokens ?? null,
-                cost_inr:              costInr,
-              },
-              { onConflict: "ingredient_hash" },
-            ),
-          )
-        }
       } else {
         console.log(`[${requestId}] scan returned error ("${validated.value.error}") — not cached, IP still charged`)
       }
