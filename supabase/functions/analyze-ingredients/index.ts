@@ -375,9 +375,12 @@ serve(async (req) => {
     const imageHash = await sha256Hex(imageBase64)
 
     if (adminClient) {
+      // Select only columns guaranteed to exist (created via dashboard, no migration).
+      // score_rationale and low_confidence_warning are read from the flagged JSONB
+      // instead — they're stored there anyway as part of the full analysis object.
       const { data: cached, error: cacheErr } = await adminClient
         .from("scans")
-        .select("score, flagged, score_rationale, low_confidence_warning, scan_count")
+        .select("flagged, scan_count")
         .eq("ingredient_hash", imageHash)
         .maybeSingle()
 
@@ -387,11 +390,11 @@ serve(async (req) => {
       } else if (cached) {
         console.log(`[${requestId}] cache HIT — hash ${imageHash.slice(0, 12)}`)
 
-        // Fire-and-forget: update scan_count in cache + increment IP counter
+        // Fire-and-forget: update scan_count + increment IP counter
         Promise.all([
           adminClient
             .from("scans")
-            .update({ scan_count: cached.scan_count + 1, updated_at: now })
+            .update({ scan_count: cached.scan_count + 1 })
             .eq("ingredient_hash", imageHash),
           incrementIpScanCount(ipHash, currentIpScanCount, now),
         ]).catch(err => console.error(`[${requestId}] cache counter update failed:`, err))
@@ -399,11 +402,11 @@ serve(async (req) => {
         const cachedAnalysis = cached.flagged as Record<string, unknown> | null
         return jsonResponse(
           {
-            score: cached.score,
+            score: (cachedAnalysis?.score as number) ?? 0,
             ingredients: Array.isArray(cachedAnalysis?.ingredients) ? cachedAnalysis!.ingredients : [],
             all_ingredients: Array.isArray(cachedAnalysis?.all_ingredients) ? cachedAnalysis!.all_ingredients : [],
-            score_rationale: cached.score_rationale ?? null,
-            low_confidence_warning: cached.low_confidence_warning ?? null,
+            score_rationale: (cachedAnalysis?.score_rationale as string) ?? null,
+            low_confidence_warning: (cachedAnalysis?.low_confidence_warning as string) ?? null,
           },
           { corsHeaders: cors.headers },
         )
@@ -567,8 +570,6 @@ serve(async (req) => {
               score: validated.value.score,
               flagged: validated.value,
               scan_count: 1,
-              created_at: now,
-              updated_at: now,
               input_tokens:          usage?.input_tokens ?? null,
               output_tokens:         usage?.output_tokens ?? null,
               cache_creation_tokens: usage?.cache_creation_input_tokens ?? null,
