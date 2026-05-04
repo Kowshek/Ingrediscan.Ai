@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { hashIngredients } from '../lib/hash';
+import { hashImage } from '../lib/hash';
 
 // Reading a Blob via FileReader stays the simplest cross-browser path to
 // base64. Returns ONLY the data portion (no `data:image/...;base64,` prefix).
@@ -48,7 +48,7 @@ export async function analyzeIngredients(imageFile) {
   // Pre-flight cache check — hash the image bytes as fingerprint.
   let hash;
   try {
-    hash = await hashIngredients(base64);
+    hash = await hashImage(base64);
   } catch (err) {
     // SubtleCrypto failure (very rare). Don't block the user — skip cache.
     console.warn('[analyzeImage] hash failed, skipping cache:', err);
