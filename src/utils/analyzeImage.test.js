@@ -22,6 +22,7 @@ vi.mock('../lib/supabase', () => ({
 // Hash is deterministic-ish but we stub it to keep tests focused.
 vi.mock('../lib/hash', () => ({
   hashIngredients: vi.fn(async () => 'deadbeef'.repeat(8)),
+  hashImage: vi.fn(async () => 'deadbeef'.repeat(8)),
 }))
 
 import { analyzeIngredients } from './analyzeImage'
