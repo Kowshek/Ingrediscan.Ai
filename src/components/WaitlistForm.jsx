@@ -7,7 +7,7 @@ const FIELDS = [
   { id: 'name',     label: 'Name',                                                type: 'text',  placeholder: 'Your name',                    required: true  },
   { id: 'email',    label: 'Email',                                               type: 'email', placeholder: 'you@example.com',              required: true  },
   { id: 'mobile',   label: 'Mobile Number',                                       type: 'tel',   placeholder: 'Your phone number',            required: false },
-  { id: 'source',   label: 'Where did you hear from us?',                         type: 'text',  placeholder: 'e.g. Instagram, a friend…',    required: true  },
+  { id: 'source',   label: 'Where did you hear from us?',                         type: 'text',  placeholder: 'e.g. Instagram, a friend…',    required: false },
   { id: 'products', label: 'What product would you scan first?',                  type: 'text',  placeholder: 'e.g. protein powder, snacks…', required: false },
   { id: 'barrier',  label: "What's stopping you from paying ₹99/month for this?", type: 'text',  placeholder: 'Be honest — it helps us',      required: false },
 ];
@@ -57,7 +57,7 @@ export default function WaitlistForm() {
         name:     fields.name,
         email:    fields.email,
         mobile:   fields.mobile   || null,
-        source:   fields.source,
+        source:   fields.source   || null,
         products: fields.products || null,
         blocker:  fields.barrier  || null,
       }).then(({ error }) => { if (error) console.error(error); });
@@ -143,6 +143,11 @@ export default function WaitlistForm() {
       >
         {status === 'loading' ? 'Submitting…' : 'Join the Waitlist'}
       </motion.button>
+
+      <p style={{ textAlign: 'center', fontSize: '14px', color: '#dadada', margin: 0 }}>
+        Don&apos;t worry we don&apos;t like spam either. <br/>
+        We&apos;ll only email you when IngrediScan launches.
+      </p>
     </motion.form>
   );
 }
