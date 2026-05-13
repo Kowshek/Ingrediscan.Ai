@@ -16,6 +16,11 @@ if (sentryDsn) {
     dsn: sentryDsn,
     environment: import.meta.env.MODE, // 'production' | 'development'
 
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration(),
+    ],
+
     // Capture 10% of sessions for performance tracing — enough signal without
     // hammering your Sentry quota on a free plan.
     tracesSampleRate: 0.1,

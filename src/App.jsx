@@ -87,8 +87,28 @@ function LoadingState({ imagePreview }) {
 
 // ── Error state ────────────────────────────────────────────────────────────
 function ErrorState({ error, onRetry }) {
-  const isLimitError = error === 'scan_limit_reached';
-  const isOverloaded = typeof error === 'string' && error.toLowerCase().includes('high demand');
+  const isLimitError    = error === 'scan_limit_reached';
+  const isMedicine      = error === 'medicine_not_supported';
+  const isOverloaded    = typeof error === 'string' && error.toLowerCase().includes('high demand');
+
+  const icon    = isLimitError ? '🔒' : isMedicine ? '💊' : isOverloaded ? '⏳' : '⚠️';
+  const accent  = isMedicine
+    ? { bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.22)', color: '#FCD34D' }
+    : isLimitError
+    ? { bg: 'rgba(45,212,191,0.08)',  border: 'rgba(45,212,191,0.2)',  color: '#2dd4bf' }
+    : { bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.2)',   color: '#f87171' };
+
+  const title = isLimitError
+    ? "You've used your 3 free scans"
+    : isMedicine
+    ? "Medicine detected — not supported"
+    : 'Analysis Failed';
+
+  const body = isLimitError
+    ? 'Join the waitlist to get 10 free scans when we launch the full version.'
+    : isMedicine
+    ? 'IngrediScan analyses food and personal care products only. We don\'t scan prescription or OTC medicines — please consult a pharmacist or doctor for medication questions.'
+    : error;
 
   return (
     <motion.div
@@ -101,22 +121,13 @@ function ErrorState({ error, onRetry }) {
     >
       <div
         className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl"
-        style={{
-          background: isLimitError ? 'rgba(45,212,191,0.08)' : 'rgba(239,68,68,0.08)',
-          border: `1px solid ${isLimitError ? 'rgba(45,212,191,0.2)' : 'rgba(239,68,68,0.2)'}`,
-        }}
+        style={{ background: accent.bg, border: `1px solid ${accent.border}` }}
       >
-        {isLimitError ? '🔒' : isOverloaded ? '⏳' : '⚠'}
+        {icon}
       </div>
       <div className="space-y-2 max-w-sm">
-        <p className="text-zinc-100 font-semibold text-lg">
-          {isLimitError ? "You've used your 3 free scans" : 'Analysis Failed'}
-        </p>
-        <p className="text-zinc-500 text-sm leading-relaxed">
-          {isLimitError
-            ? 'Join the waitlist to get 10 free scans when we launch the full version.'
-            : error}
-        </p>
+        <p className="text-zinc-100 font-semibold text-lg">{title}</p>
+        <p className="text-zinc-500 text-sm leading-relaxed">{body}</p>
       </div>
 
       <div className="flex flex-col items-center gap-3 w-full max-w-xs">
@@ -152,15 +163,16 @@ function ErrorState({ error, onRetry }) {
         ) : (
           <motion.button
             onClick={onRetry}
-            className="px-6 py-3 rounded-xl text-zinc-200 font-medium text-sm cursor-pointer"
+            className="px-6 py-3 rounded-xl font-medium text-sm cursor-pointer"
             style={{
               background: 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.1)',
+              color: isMedicine ? '#FCD34D' : '#e4e4e7',
             }}
             whileHover={{ background: 'rgba(255,255,255,0.09)' }}
             whileTap={{ scale: 0.97 }}
           >
-            Try Again
+            {isMedicine ? 'Scan a food product instead' : 'Try Again'}
           </motion.button>
         )}
       </div>
@@ -226,6 +238,17 @@ function AppInner() {
       const next = scanCount + 1;
       setScanCount(next);
       localStorage.setItem('ingrediscan_scan_count', String(next));
+
+      // Server returned a structured error (e.g. medicine not supported).
+      // Don't render the Results component with garbage data — show a proper error.
+      if (data.error) {
+        setError(data.error === 'Medicine scanning not supported.'
+          ? 'medicine_not_supported'
+          : data.error);
+        setPhase('error');
+        return;
+      }
+
       setResult(data);
       setPhase('result');
       track('scan_completed', {

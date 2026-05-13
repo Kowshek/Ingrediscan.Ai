@@ -168,17 +168,41 @@ export default function UploadZone({ onAnalyze, onJoinWaitlist }) {
         <motion.div className="mt-5 flex items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
           <motion.button
             onClick={onJoinWaitlist}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium cursor-pointer"
-            style={{ background: 'rgba(45,212,191,0.07)', border: '1px solid rgba(45,212,191,0.18)', color: '#2dd4bf', fontFamily: "'DM Sans', system-ui, sans-serif" }}
-            whileHover={{ background: 'rgba(45,212,191,0.13)', borderColor: 'rgba(45,212,191,0.3)' }}
+            className="group relative flex flex-col items-center gap-1 px-6 py-3 rounded-2xl cursor-pointer overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, rgba(45,212,191,0.15) 0%, rgba(45,212,191,0.06) 100%)',
+              border: '1.5px solid rgba(45,212,191,0.35)',
+              color: '#2dd4bf',
+              fontFamily: "'DM Sans', system-ui, sans-serif",
+              boxShadow: '0 0 18px rgba(45,212,191,0.12)',
+            }}
+            whileHover={{
+              background: 'linear-gradient(135deg, rgba(45,212,191,0.22) 0%, rgba(45,212,191,0.10) 100%)',
+              borderColor: 'rgba(45,212,191,0.6)',
+              boxShadow: '0 0 28px rgba(45,212,191,0.22)',
+              y: -1,
+            }}
             whileTap={{ scale: 0.97 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.18 }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
-            </svg>
-            Get 10 free scans at launch
-            <span style={{ opacity: 0.6, fontSize: '12px' }}>→</span>
+            {/* Top row: icon + main label */}
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
+              </svg>
+              Get 10 free scans at launch
+              <motion.span
+                animate={{ x: [0, 3, 0] }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                style={{ display: 'inline-block', fontSize: '17px', lineHeight: 1 }}
+              >
+                →
+              </motion.span>
+            </span>
+            {/* Bottom row: sub-label */}
+            <span style={{ fontSize: '11px', opacity: 0.65, letterSpacing: '0.02em', fontWeight: 500 }}>
+              Click to join the waitlist
+            </span>
           </motion.button>
         </motion.div>
       )}

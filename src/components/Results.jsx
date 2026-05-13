@@ -164,6 +164,48 @@ function SectionLabel({ children }) {
 }
 
 export default function Results({ result, onReset, onJoinWaitlist }) {
+  // Hard guard — if the server returned a structured error (e.g. medicine blocked),
+  // never render a results view. App.jsx should have caught this first, but this
+  // is the safety net in case the result somehow reaches here.
+  if (result?.error) {
+    const isMedicine = result.error === 'Medicine scanning not supported.';
+    return (
+      <motion.div
+        className="flex flex-col items-center gap-6 py-16 text-center"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl"
+          style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.22)' }}
+        >
+          {isMedicine ? '💊' : '⚠️'}
+        </div>
+        <div className="space-y-2 max-w-sm">
+          <p className="text-zinc-100 font-semibold text-lg">
+            {isMedicine ? 'Medicine detected — not supported' : 'Scan not supported'}
+          </p>
+          <p className="text-zinc-500 text-sm leading-relaxed">
+            {isMedicine
+              ? "IngrediScan analyses food and personal care products only. We don't scan prescription or OTC medicines."
+              : result.error}
+          </p>
+        </div>
+        <motion.button
+          onClick={onReset}
+          className="px-6 py-3 rounded-xl font-medium text-sm cursor-pointer"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#FCD34D' }}
+          whileHover={{ background: 'rgba(255,255,255,0.09)' }}
+          whileTap={{ scale: 0.97 }}
+        >
+          Scan a food product instead
+        </motion.button>
+      </motion.div>
+    );
+  }
+
   const { score, ingredients = [], all_ingredients = [], score_rationale, low_confidence_warning } = result;
 
   const harmful     = ingredients.filter((i) => i.status === 'harmful');
