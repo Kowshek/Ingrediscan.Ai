@@ -18,14 +18,19 @@ export default function ConsentBanner({ visible, onDecide }) {
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 12 }}
+          exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
           style={{
-            margin: '32px auto 0',
-            width: '100%',
+            position: 'fixed',
+            bottom: '20px',
+            left: '16px',
+            right: '16px',
+            width: 'auto',
             maxWidth: '560px',
+            margin: '0 auto',
+            zIndex: 1000,
             background: '#0F1923',
             border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: '16px',

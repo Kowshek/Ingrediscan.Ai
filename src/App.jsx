@@ -376,13 +376,13 @@ function AppInner() {
             <ErrorState key="error" error={error} onRetry={reset} />
           )}
         </AnimatePresence>
-
-        {/* Cookie consent banner — shown once, inline below main content */}
-        <ConsentBanner
-          visible={!consentDecided}
-          onDecide={() => setConsentDecided(true)}
-        />
       </div>
+
+      {/* Cookie consent banner — fixed to bottom of screen */}
+      <ConsentBanner
+        visible={!consentDecided}
+        onDecide={() => setConsentDecided(true)}
+      />
     </div>
   );
 }
