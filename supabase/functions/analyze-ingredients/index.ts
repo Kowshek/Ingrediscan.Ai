@@ -444,9 +444,13 @@ serve(async (req) => {
     const imageHash = await sha256Hex(imageBase64)
 
     if (adminClient) {
+      // score_rationale and low_confidence_warning are NOT separate columns —
+      // they live inside the flagged JSONB blob. Selecting them as columns
+      // caused a PostgREST error on every cache read, silently bypassing the
+      // cache and calling Claude on every scan. Fixed: select only real columns.
       const { data: cached, error: cacheErr } = await adminClient
         .from("scans")
-        .select("score, flagged, score_rationale, low_confidence_warning, scan_count")
+        .select("score, flagged, scan_count")
         .eq("ingredient_hash", imageHash)
         .maybeSingle()
 
@@ -478,8 +482,8 @@ serve(async (req) => {
               score: cached.score,
               ingredients: Array.isArray(cachedAnalysis?.ingredients) ? cachedAnalysis!.ingredients : [],
               all_ingredients: Array.isArray(cachedAnalysis?.all_ingredients) ? cachedAnalysis!.all_ingredients : [],
-              score_rationale: cached.score_rationale ?? null,
-              low_confidence_warning: cached.low_confidence_warning ?? null,
+              score_rationale: (cachedAnalysis?.score_rationale as string | null) ?? null,
+              low_confidence_warning: (cachedAnalysis?.low_confidence_warning as string | null) ?? null,
             },
             { corsHeaders: cors.headers },
           )

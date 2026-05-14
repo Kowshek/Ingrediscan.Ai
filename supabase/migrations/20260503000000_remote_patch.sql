@@ -1,0 +1,3 @@
+-- Placeholder for a migration applied directly in the Supabase dashboard.
+-- This file exists solely to satisfy the local migration history check.
+-- No schema changes are made here.

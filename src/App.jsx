@@ -6,9 +6,11 @@ import Results from './components/Results';
 import LimitReached from './components/LimitReached';
 import WaitlistPage from './components/WaitlistPage';
 import Onboarding from './components/Onboarding';
+import ConsentBanner from './components/ConsentBanner';
 import AppErrorFallback from './components/AppErrorFallback';
 import { analyzeIngredients } from './utils/analyzeImage';
 import { track } from './lib/analytics';
+import { hasDecided } from './lib/consent';
 import './App.css';
 
 // ── Loading state ──────────────────────────────────────────────────────────
@@ -205,6 +207,7 @@ function AppInner() {
   const [onboardingDone, setOnboardingDone] = useState(() =>
     localStorage.getItem('onboarding_complete') === 'true'
   );
+  const [consentDecided, setConsentDecided] = useState(() => hasDecided());
   // ?preview=limit in the URL forces the limit screen (dev convenience only)
   const [phase, setPhase] = useState(() =>
     import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'limit'
@@ -373,6 +376,12 @@ function AppInner() {
             <ErrorState key="error" error={error} onRetry={reset} />
           )}
         </AnimatePresence>
+
+        {/* Cookie consent banner — shown once, inline below main content */}
+        <ConsentBanner
+          visible={!consentDecided}
+          onDecide={() => setConsentDecided(true)}
+        />
       </div>
     </div>
   );

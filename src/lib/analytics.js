@@ -2,6 +2,9 @@
 // Lazy-loaded so the app never crashes if posthog-js isn't installed yet.
 // To activate: npm install posthog-js, then add VITE_POSTHOG_KEY to .env
 //
+// CONSENT GATED — only initialises after the user accepts the consent banner.
+// Call initAnalytics() once consent is granted, never on cold page load.
+//
 // Events tracked:
 //   scan_started          — user submits a photo
 //   scan_completed        — AI returned a result (score, counts, cached)
@@ -16,6 +19,8 @@ export async function initAnalytics() {
   const key = import.meta.env.VITE_POSTHOG_KEY;
   // Skip in dev or if key not set
   if (!key || import.meta.env.DEV) return;
+  // Already initialised — don't double-init
+  if (_ph) return;
   try {
     const { default: posthog } = await import('posthog-js');
     posthog.init(key, {
