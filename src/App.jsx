@@ -322,7 +322,10 @@ function AppInner() {
         }}
       />
 
-      <div className="relative max-w-2xl mx-auto px-4 pt-8 pb-24 md:pt-10">
+      <div
+        className="relative max-w-2xl mx-auto px-4 pt-8 md:pt-10"
+        style={{ paddingBottom: consentDecided ? '96px' : '140px' }}
+      >
         {/* Header */}
         <motion.header
           className="mb-8 md:mb-12 text-center"

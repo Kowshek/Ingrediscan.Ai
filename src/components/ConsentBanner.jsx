@@ -76,6 +76,15 @@ export default function ConsentBanner({ visible, onDecide }) {
             >
               Privacy Policy ↗
             </a>
+            {' · '}
+            <a
+              href="https://www.ingrediscan.in/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#2DD4BF', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            >
+              Terms ↗
+            </a>
           </p>
 
           {/* Buttons */}
