@@ -34,67 +34,71 @@ export default function ConsentBanner({ visible, onDecide }) {
             background: '#0F1923',
             border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: '16px',
-            padding: '16px 20px',
+            padding: '14px 16px',
             display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
+            flexDirection: 'column',
+            gap: '12px',
             boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
           }}
         >
-          {/* Icon */}
-          <div
-            style={{
-              flexShrink: 0,
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'rgba(45,212,191,0.1)',
-              border: '1px solid rgba(45,212,191,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '16px',
-            }}
-          >
-            🍪
+          {/* Top row: icon + text */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+            {/* Icon */}
+            <div
+              style={{
+                flexShrink: 0,
+                width: '32px',
+                height: '32px',
+                borderRadius: '9px',
+                background: 'rgba(45,212,191,0.1)',
+                border: '1px solid rgba(45,212,191,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '15px',
+                marginTop: '1px',
+              }}
+            >
+              🍪
+            </div>
+
+            {/* Text */}
+            <p style={{
+              flex: 1,
+              fontSize: '13px',
+              color: '#94A3B8',
+              lineHeight: 1.55,
+              margin: 0,
+            }}>
+              We use anonymous analytics to improve IngrediScan. No ads, no selling data.{' '}
+              <a
+                href="https://www.ingrediscan.in/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#2DD4BF', textDecoration: 'none' }}
+              >
+                Privacy Policy ↗
+              </a>
+              {' · '}
+              <a
+                href="https://www.ingrediscan.in/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#2DD4BF', textDecoration: 'none' }}
+              >
+                Terms ↗
+              </a>
+            </p>
           </div>
 
-          {/* Text */}
-          <p style={{
-            flex: 1,
-            fontSize: '13px',
-            color: '#94A3B8',
-            lineHeight: 1.5,
-            margin: 0,
-          }}>
-            We use anonymous analytics to improve IngrediScan. No ads, no selling data.{' '}
-            <a
-              href="https://www.ingrediscan.in/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#2DD4BF', textDecoration: 'none', whiteSpace: 'nowrap' }}
-            >
-              Privacy Policy ↗
-            </a>
-            {' · '}
-            <a
-              href="https://www.ingrediscan.in/terms"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#2DD4BF', textDecoration: 'none', whiteSpace: 'nowrap' }}
-            >
-              Terms ↗
-            </a>
-          </p>
-
-          {/* Buttons */}
-          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+          {/* Bottom row: buttons right-aligned */}
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
             <motion.button
               onClick={handleDecline}
               whileHover={{ background: 'rgba(255,255,255,0.07)' }}
               whileTap={{ scale: 0.97 }}
               style={{
-                padding: '8px 14px',
+                padding: '9px 18px',
                 borderRadius: '10px',
                 border: '1px solid rgba(255,255,255,0.1)',
                 background: 'rgba(255,255,255,0.04)',
@@ -112,7 +116,7 @@ export default function ConsentBanner({ visible, onDecide }) {
               whileHover={{ background: '#5EEAD4' }}
               whileTap={{ scale: 0.97 }}
               style={{
-                padding: '8px 14px',
+                padding: '9px 20px',
                 borderRadius: '10px',
                 border: 'none',
                 background: '#2DD4BF',

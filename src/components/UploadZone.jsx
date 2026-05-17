@@ -32,7 +32,7 @@ function CameraIcon() {
   );
 }
 
-const HINT_TAGS = ['Food labels', 'Skincare', 'Snacks', 'Beverages'];
+const HINT_TAGS = ['Nutrition Labels', 'Skin Care', 'Cosmetics', 'Supplements'];
 
 export default function UploadZone({ onAnalyze, onJoinWaitlist }) {
   const [dragging, setDragging] = useState(false);
@@ -141,9 +141,9 @@ export default function UploadZone({ onAnalyze, onJoinWaitlist }) {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 justify-center">
+          <div className="grid grid-cols-2 gap-2 w-full max-w-[260px] md:flex md:flex-wrap md:justify-center md:max-w-none">
             {HINT_TAGS.map((tag) => (
-              <span key={tag} className="text-xs px-3 rounded-full" style={{ background: 'rgba(255,255,255,0.04)', color: '#adadad', border: '1px solid rgba(255,255,255,0.07)', minHeight: '28px', display: 'inline-flex', alignItems: 'center' }}>
+              <span key={tag} className="text-xs px-3 rounded-full justify-center" style={{ background: 'rgba(255,255,255,0.04)', color: '#adadad', border: '1px solid rgba(255,255,255,0.07)', minHeight: '28px', display: 'flex', alignItems: 'center' }}>
                 {tag}
               </span>
             ))}
