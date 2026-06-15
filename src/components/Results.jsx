@@ -206,14 +206,27 @@ export default function Results({ result, onReset, onJoinWaitlist }) {
     );
   }
 
-  const { score, ingredients = [], all_ingredients = [], score_rationale, low_confidence_warning } = result;
+  const {
+    score,
+    ingredients     = [],
+    all_ingredients = [],
+    trace_ingredients = [],
+    score_rationale,
+    low_confidence_warning,
+  } = result;
 
   const harmful     = ingredients.filter((i) => i.status === 'harmful');
   const moderate    = ingredients.filter((i) => i.status === 'moderate');
   const caution     = ingredients.filter((i) => i.status === 'caution');
   const problematic = [...harmful, ...moderate];
-  const safeCount   = Math.max(0, all_ingredients.length - ingredients.length);
   const allClear    = problematic.length === 0;
+
+  // Safe = everything in all_ingredients that isn't flagged (ingredients[] or trace[])
+  const flaggedNames = new Set([
+    ...ingredients.map((i) => i.name.toLowerCase()),
+    ...trace_ingredients.map((i) => i.name.toLowerCase()),
+  ]);
+  const safeIngredients = all_ingredients.filter((name) => !flaggedNames.has(name.toLowerCase()));
 
   return (
     <motion.div className="w-full space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.3 }}>
@@ -243,9 +256,14 @@ export default function Results({ result, onReset, onJoinWaitlist }) {
                   🟡 {caution.length} Caution
                 </span>
               )}
-              {safeCount > 0 && (
+              {trace_ingredients.length > 0 && (
+                <span className="rounded-full font-medium" style={{ fontSize: '13px', padding: '6px 14px', background: 'rgba(148,163,184,0.1)', color: '#94A3B8', border: '1px solid rgba(148,163,184,0.25)' }}>
+                  ◎ {trace_ingredients.length} Small Amounts
+                </span>
+              )}
+              {safeIngredients.length > 0 && (
                 <span className="rounded-full font-medium" style={{ fontSize: '13px', padding: '6px 14px', background: 'rgba(74,222,128,0.2)', color: '#4ADE80', border: '1px solid rgba(74,222,128,0.4)' }}>
-                  🟢 {safeCount} Safe
+                  🟢 {safeIngredients.length} Safe
                 </span>
               )}
             </motion.div>
@@ -329,6 +347,62 @@ export default function Results({ result, onReset, onJoinWaitlist }) {
                 </motion.div>
               );
             })}
+          </motion.div>
+        </SectionCard>
+      )}
+
+      {/* Present in Small Amounts — trace caution items (last 25% of ingredient list) */}
+      {trace_ingredients.length > 0 && (
+        <SectionCard delay={0.28}>
+          <SectionLabel>Present in Small Amounts</SectionLabel>
+          <motion.div className="space-y-1" variants={listVariants} initial="hidden" animate="visible">
+            {trace_ingredients.map((ing, i) => (
+              <motion.div
+                key={`${ing.name}-${i}`}
+                variants={itemVariants}
+                className="flex items-start gap-3 px-3 py-2.5 rounded-xl transition-colors duration-150 hover:bg-white/[0.02]"
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full mt-[7px] shrink-0"
+                  style={{ background: 'rgba(148,163,184,0.5)' }}
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="font-medium text-zinc-400" style={{ fontSize: '14px', wordBreak: 'break-word' }}>
+                    {ing.name}
+                  </span>
+                  <p className="text-xs text-zinc-600 mt-0.5 leading-relaxed">
+                    Appears late in the ingredient list — present in small amounts, minimal concern
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </SectionCard>
+      )}
+
+      {/* Safe Ingredients — everything not flagged */}
+      {safeIngredients.length > 0 && (
+        <SectionCard delay={0.34}>
+          <SectionLabel>Safe Ingredients</SectionLabel>
+          <motion.div
+            className="flex flex-wrap gap-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.45 }}
+          >
+            {safeIngredients.map((name, i) => (
+              <span
+                key={`${name}-${i}`}
+                className="text-xs font-medium rounded-full px-3 py-1"
+                style={{
+                  background: 'rgba(74,222,128,0.06)',
+                  color: '#6EE7B7',
+                  border: '1px solid rgba(74,222,128,0.15)',
+                }}
+              >
+                {name}
+              </span>
+            ))}
           </motion.div>
         </SectionCard>
       )}

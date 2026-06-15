@@ -122,6 +122,14 @@ export type AnalysisResult = {
     reason: string
     concern_type: string
   }>
+  // Caution-tier ingredients appearing in the last 25% of the ingredient list.
+  // Present in small amounts → excluded from score. Defaults to [] for old cache rows.
+  trace_ingredients: Array<{
+    name: string
+    status: 'caution'
+    reason: string
+    concern_type: string
+  }>
   error?: string
 }
 
@@ -184,6 +192,28 @@ export function validateAnalysisShape(value: unknown): { ok: true; value: Analys
   // Normalise: guarantee all_ingredients is always an array on the result object.
   if (!Array.isArray(v.all_ingredients)) {
     v.all_ingredients = (v.ingredients as Array<{name:string}>).map(i => i.name)
+  }
+  // trace_ingredients is optional in older responses — default to [] if absent.
+  if (v.trace_ingredients === undefined || v.trace_ingredients === null) {
+    v.trace_ingredients = []
+  } else if (!Array.isArray(v.trace_ingredients)) {
+    return { ok: false, error: 'trace_ingredients must be an array.' }
+  } else {
+    for (const ing of v.trace_ingredients) {
+      if (typeof ing !== 'object' || ing === null) {
+        return { ok: false, error: 'trace_ingredients entry is not an object.' }
+      }
+      const i = ing as Record<string, unknown>
+      if (typeof i.name !== 'string' || i.name.length === 0 || i.name.length > 200) {
+        return { ok: false, error: 'trace_ingredients entry.name invalid.' }
+      }
+      if (i.status !== 'caution') {
+        return { ok: false, error: `trace_ingredients entry.status must be "caution", got ${i.status}.` }
+      }
+      if (typeof i.reason !== 'string' || i.reason.length > 500) {
+        return { ok: false, error: 'trace_ingredients entry.reason invalid.' }
+      }
+    }
   }
   return { ok: true, value: v as unknown as AnalysisResult }
 }

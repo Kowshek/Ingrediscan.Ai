@@ -34,6 +34,16 @@ function isValidAnalysis(value) {
     if (ing.status !== 'harmful' && ing.status !== 'moderate' && ing.status !== 'caution' && ing.status !== 'safe') return false;
     if (typeof ing.reason !== 'string' || ing.reason.length > 500) return false;
   }
+  // trace_ingredients is optional (old cache rows won't have it) — validate if present.
+  if (value.trace_ingredients !== undefined && value.trace_ingredients !== null) {
+    if (!Array.isArray(value.trace_ingredients)) return false;
+    for (const ing of value.trace_ingredients) {
+      if (typeof ing !== 'object' || ing === null) return false;
+      if (typeof ing.name !== 'string' || ing.name.length === 0 || ing.name.length > 200) return false;
+      if (ing.status !== 'caution') return false;
+      if (typeof ing.reason !== 'string' || ing.reason.length > 500) return false;
+    }
+  }
   return true;
 }
 

@@ -20,7 +20,7 @@ const FREE_SCAN_LIMIT = 3               // server-side enforcement (mirrors loca
 // stored version doesn't match the current one, we treat it as a cache miss
 // and re-analyse with the updated prompt. This prevents stale wrong answers
 // from being served forever after a prompt fix.
-const PROMPT_VERSION = "v3"
+const PROMPT_VERSION = "v4"
 
 // ── Token pricing (claude-haiku-4-5) — USD per million tokens ─────────────
 // Source: https://www.anthropic.com/pricing
@@ -191,13 +191,39 @@ Common Indian food adulterants (flag as harmful if detected):
 - Coal tar dyes in sweets, beverages, pickles — illegal and carcinogenic
 - Kesari dal (Lathyrus sativus) in besan blends — neurotoxin causing lathyrism
 
+══════════════════════════════════════════════════════════════
+POSITIONAL WEIGHTING — CAUTION INGREDIENTS ONLY
+══════════════════════════════════════════════════════════════
+
+Ingredients are legally required to be listed in descending order by weight. Position is a reliable proxy for quantity.
+
+After classifying all ingredients, apply the following rule to CAUTION-tier items only:
+
+  1. Let N = total number of ingredients in the full list.
+  2. Skip this rule entirely when N < 4 (too few ingredients for position to be meaningful).
+  3. For each CAUTION-tier ingredient, note its position P (P = 1 for first, P = N for last).
+  4. If P > 0.75 × N (ingredient falls in the last 25% of the list):
+       → The ingredient is present in trace amounts.
+         Add it to trace_ingredients[] ONLY. Do NOT include it in ingredients[].
+  5. If P ≤ 0.75 × N:
+       → Keep it in ingredients[] as normal.
+
+CRITICAL RULES FOR POSITIONAL WEIGHTING:
+  • HARMFUL and MODERATE ingredients are NEVER moved to trace_ingredients[], regardless of position.
+  • trace_ingredients[] entries have the exact same object shape as ingredients[] entries.
+  • status in trace_ingredients[] entries is always "caution".
+  • trace_ingredients[] entries do NOT contribute to the score or its scoring ceiling.
+  • If no caution ingredients qualify, trace_ingredients[] must still be present as an empty array [].
+
 SCORING — STRICT CEILING RULES (apply in this exact order, stop at the first matching rule):
 
 STEP 1 — Determine the hard ceiling from the worst tier present:
-  • Any HARMFUL ingredient present          → score MUST be 3 or lower (never 4, 5, 6, 7, 8, 9, or 10)
-  • No HARMFUL, but MODERATE present        → score MUST be 6 or lower (never 7, 8, 9, or 10)
-  • No HARMFUL, no MODERATE, CAUTION only   → score MUST be 8 or lower (never 9 or 10)
-  • All SAFE, no flags at all               → score may be 9 or 10
+  • Any HARMFUL ingredient present                                           → score MUST be 3 or lower (never 4, 5, 6, 7, 8, 9, or 10)
+  • No HARMFUL, but MODERATE present                                         → score MUST be 6 or lower (never 7, 8, 9, or 10)
+  • No HARMFUL, no MODERATE, CAUTION items in ingredients[] only             → score MUST be 8 or lower (never 9 or 10)
+  • All SAFE, or ingredients[] is empty (only trace_ingredients[] populated) → score may be 9 or 10
+
+  Items in trace_ingredients[] are excluded from ALL score ceiling calculations.
 
 STEP 2 — Within the ceiling set above, apply quantity/severity rules:
 
@@ -246,14 +272,18 @@ OUTPUT FORMAT — return ONLY valid raw JSON. No markdown. No backticks. No expl
 
 The response must include a top-level "all_ingredients" array listing every ingredient name exactly as written on the label, in the order listed, regardless of safety status. This is separate from "ingredients" which contains only flagged items (harmful, moderate, caution — never safe).
 
+The response must also include a top-level "trace_ingredients" array containing CAUTION-tier ingredients that appear in the last 25% of the ingredient list (see POSITIONAL WEIGHTING above). May be empty []. Never omit this field.
+
 Example — product with 1 harmful + moderates + cautions (score MUST be ≤ 3):
-{"score":3,"score_rationale":"Contains partially hydrogenated fat, an industrial trans fat that is a cardiovascular hazard","low_confidence_warning":null,"all_ingredients":["Partially Hydrogenated Vegetable Oil","Sugar","Maida","Nature Identical Flavour","Sodium Benzoate","Salt","Citric Acid"],"ingredients":[{"name":"Partially Hydrogenated Vegetable Oil","status":"harmful","reason":"Industrial trans fat; strongly linked to cardiovascular disease, banned or restricted in many countries","concern_type":"banned_substance"},{"name":"Nature Identical Flavour","status":"moderate","reason":"Chemically synthesised flavour compounds with undisclosed composition","concern_type":"frequent_use_concern"},{"name":"Sodium Benzoate","status":"moderate","reason":"Preservative linked to hyperactivity; forms benzene when combined with ascorbic acid","concern_type":"irritant"},{"name":"Sugar","status":"caution","reason":"Refined sugar adds to glycaemic load with daily consumption","concern_type":"frequent_use_concern"},{"name":"Maida","status":"caution","reason":"Refined wheat flour stripped of fibre; high glycaemic index with daily use","concern_type":"frequent_use_concern"},{"name":"Salt","status":"caution","reason":"High sodium intake linked to hypertension with regular daily consumption","concern_type":"frequent_use_concern"}]}
+Here N=7. Last 25% threshold = 0.75×7 = 5.25, so positions 6 and 7 are trace. "Salt" is at position 6 and "Citric Acid" at position 7 — but Salt is caution and Citric Acid is safe. So Salt moves to trace_ingredients[].
+{"score":3,"score_rationale":"Contains partially hydrogenated fat, an industrial trans fat that is a cardiovascular hazard","low_confidence_warning":null,"all_ingredients":["Partially Hydrogenated Vegetable Oil","Sugar","Maida","Nature Identical Flavour","Sodium Benzoate","Salt","Citric Acid"],"ingredients":[{"name":"Partially Hydrogenated Vegetable Oil","status":"harmful","reason":"Industrial trans fat; strongly linked to cardiovascular disease, banned or restricted in many countries","concern_type":"banned_substance"},{"name":"Nature Identical Flavour","status":"moderate","reason":"Chemically synthesised flavour compounds with undisclosed composition","concern_type":"frequent_use_concern"},{"name":"Sodium Benzoate","status":"moderate","reason":"Preservative linked to hyperactivity; forms benzene when combined with ascorbic acid","concern_type":"irritant"},{"name":"Sugar","status":"caution","reason":"Refined sugar adds to glycaemic load with daily consumption","concern_type":"frequent_use_concern"},{"name":"Maida","status":"caution","reason":"Refined wheat flour stripped of fibre; high glycaemic index with daily use","concern_type":"frequent_use_concern"}],"trace_ingredients":[{"name":"Salt","status":"caution","reason":"Present in small amounts — minimal concern at this quantity","concern_type":"frequent_use_concern"}]}
 
 Example — product with moderate ingredients only (no harmful):
-{"score":5,"score_rationale":"Contains synthetic food colours and nature identical flavours which pose concerns with frequent consumption","low_confidence_warning":null,"all_ingredients":["Sugar","Maida","Synthetic Food Colour (INS 122)","Nature Identical Flavour","Dextrose","Citric Acid (INS 330)"],"ingredients":[{"name":"Synthetic Food Colour (INS 122)","status":"moderate","reason":"Synthetic azo dye carmoisine, linked to allergic reactions and hyperactivity in children","concern_type":"irritant"},{"name":"Nature Identical Flavour","status":"moderate","reason":"Chemically synthesised flavour compounds mimicking natural aromas, undisclosed chemical composition","concern_type":"frequent_use_concern"},{"name":"Maida","status":"caution","reason":"Refined wheat flour stripped of fibre and nutrients; high glycaemic index promotes insulin resistance with daily consumption","concern_type":"frequent_use_concern"},{"name":"Sugar","status":"caution","reason":"Refined sugar adds to daily glycaemic load; regular consumption linked to metabolic concerns","concern_type":"frequent_use_concern"},{"name":"Dextrose","status":"caution","reason":"Refined glucose sugar contributing to overall glycaemic load with daily consumption","concern_type":"frequent_use_concern"}]}
+Here N=6. Last 25% threshold = 0.75×6 = 4.5, so positions 5 and 6 are trace. "Dextrose" is at position 5 (caution) → moves to trace_ingredients[]. "Citric Acid" at position 6 is safe → stays in all_ingredients[] only.
+{"score":5,"score_rationale":"Contains synthetic food colours and nature identical flavours which pose concerns with frequent consumption","low_confidence_warning":null,"all_ingredients":["Sugar","Maida","Synthetic Food Colour (INS 122)","Nature Identical Flavour","Dextrose","Citric Acid (INS 330)"],"ingredients":[{"name":"Synthetic Food Colour (INS 122)","status":"moderate","reason":"Synthetic azo dye carmoisine, linked to allergic reactions and hyperactivity in children","concern_type":"irritant"},{"name":"Nature Identical Flavour","status":"moderate","reason":"Chemically synthesised flavour compounds mimicking natural aromas, undisclosed chemical composition","concern_type":"frequent_use_concern"},{"name":"Maida","status":"caution","reason":"Refined wheat flour stripped of fibre and nutrients; high glycaemic index promotes insulin resistance with daily consumption","concern_type":"frequent_use_concern"},{"name":"Sugar","status":"caution","reason":"Refined sugar adds to daily glycaemic load; regular consumption linked to metabolic concerns","concern_type":"frequent_use_concern"}],"trace_ingredients":[{"name":"Dextrose","status":"caution","reason":"Present in small amounts — minimal concern at this quantity","concern_type":"frequent_use_concern"}]}
 
 Example — clean dairy product:
-{"score":9,"score_rationale":"All ingredients are whole food components with no synthetic additives or harmful processing agents","low_confidence_warning":null,"all_ingredients":["Milk","Citric Acid"],"ingredients":[]}`
+{"score":9,"score_rationale":"All ingredients are whole food components with no synthetic additives or harmful processing agents","low_confidence_warning":null,"all_ingredients":["Milk","Citric Acid"],"ingredients":[],"trace_ingredients":[]}`
 
 // ── Supabase admin client ──────────────────────────────────────────────────
 // Service-role client for rate-limit table writes, cache reads/writes,
@@ -482,6 +512,7 @@ serve(async (req) => {
               score: cached.score,
               ingredients: Array.isArray(cachedAnalysis?.ingredients) ? cachedAnalysis!.ingredients : [],
               all_ingredients: Array.isArray(cachedAnalysis?.all_ingredients) ? cachedAnalysis!.all_ingredients : [],
+              trace_ingredients: Array.isArray(cachedAnalysis?.trace_ingredients) ? cachedAnalysis!.trace_ingredients : [],
               score_rationale: (cachedAnalysis?.score_rationale as string | null) ?? null,
               low_confidence_warning: (cachedAnalysis?.low_confidence_warning as string | null) ?? null,
             },
