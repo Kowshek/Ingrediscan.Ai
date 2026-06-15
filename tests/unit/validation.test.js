@@ -191,4 +191,87 @@ describe('validateAnalysisShape', () => {
     expect(validateAnalysisShape('hello').ok).toBe(false)
     expect(validateAnalysisShape(42).ok).toBe(false)
   })
+
+  // ── all_ingredients ───────────────────────────────────────────────────────
+  it('accepts and passes through a valid all_ingredients array', () => {
+    const out = validateAnalysisShape({ ...baseValid, all_ingredients: ['Sugar', 'Salt'] })
+    expect(out.ok).toBe(true)
+    expect(out.value.all_ingredients).toEqual(['Sugar', 'Salt'])
+  })
+
+  it('rejects all_ingredients that is not an array', () => {
+    const out = validateAnalysisShape({ ...baseValid, all_ingredients: 'Sugar, Salt' })
+    expect(out.ok).toBe(false)
+    expect(out.error).toMatch(/all_ingredients must be an array/)
+  })
+
+  it('rejects all_ingredients entries that are empty or too long', () => {
+    expect(validateAnalysisShape({ ...baseValid, all_ingredients: [''] }).ok).toBe(false)
+    expect(validateAnalysisShape({ ...baseValid, all_ingredients: ['a'.repeat(301)] }).ok).toBe(false)
+  })
+
+  it('normalises missing all_ingredients to a derived list from ingredients[]', () => {
+    const out = validateAnalysisShape(baseValid)
+    expect(out.ok).toBe(true)
+    expect(out.value.all_ingredients).toEqual(['TBHQ'])
+  })
+
+  // ── trace_ingredients ─────────────────────────────────────────────────────
+  it('defaults trace_ingredients to [] when field is absent', () => {
+    const out = validateAnalysisShape(baseValid)
+    expect(out.ok).toBe(true)
+    expect(out.value.trace_ingredients).toEqual([])
+  })
+
+  it('defaults trace_ingredients to [] when field is null', () => {
+    const out = validateAnalysisShape({ ...baseValid, trace_ingredients: null })
+    expect(out.ok).toBe(true)
+    expect(out.value.trace_ingredients).toEqual([])
+  })
+
+  it('accepts a valid trace_ingredients array', () => {
+    const trace = [{ name: 'Salt', status: 'caution', reason: 'small amount', concern_type: 'frequent_use_concern' }]
+    const out = validateAnalysisShape({ ...baseValid, trace_ingredients: trace })
+    expect(out.ok).toBe(true)
+    expect(out.value.trace_ingredients).toHaveLength(1)
+    expect(out.value.trace_ingredients[0].name).toBe('Salt')
+  })
+
+  it('accepts an empty trace_ingredients array', () => {
+    const out = validateAnalysisShape({ ...baseValid, trace_ingredients: [] })
+    expect(out.ok).toBe(true)
+    expect(out.value.trace_ingredients).toEqual([])
+  })
+
+  it('rejects trace_ingredients that is not an array', () => {
+    const out = validateAnalysisShape({ ...baseValid, trace_ingredients: 'Salt' })
+    expect(out.ok).toBe(false)
+    expect(out.error).toMatch(/trace_ingredients must be an array/)
+  })
+
+  it('rejects trace_ingredients entry that is not an object', () => {
+    const out = validateAnalysisShape({ ...baseValid, trace_ingredients: ['Salt'] })
+    expect(out.ok).toBe(false)
+    expect(out.error).toMatch(/not an object/)
+  })
+
+  it('rejects trace_ingredients entry with missing or oversized name', () => {
+    const base = { status: 'caution', reason: 'x', concern_type: 'frequent_use_concern' }
+    expect(validateAnalysisShape({ ...baseValid, trace_ingredients: [{ ...base, name: '' }] }).ok).toBe(false)
+    expect(validateAnalysisShape({ ...baseValid, trace_ingredients: [{ ...base, name: 'a'.repeat(201) }] }).ok).toBe(false)
+  })
+
+  it('rejects trace_ingredients entry whose status is not "caution"', () => {
+    const bad = { name: 'TBHQ', status: 'harmful', reason: 'x', concern_type: 'carcinogen' }
+    const out = validateAnalysisShape({ ...baseValid, trace_ingredients: [bad] })
+    expect(out.ok).toBe(false)
+    expect(out.error).toMatch(/must be "caution"/)
+  })
+
+  it('rejects trace_ingredients entry with an oversized reason string', () => {
+    const bad = { name: 'Salt', status: 'caution', reason: 'x'.repeat(501), concern_type: 'frequent_use_concern' }
+    const out = validateAnalysisShape({ ...baseValid, trace_ingredients: [bad] })
+    expect(out.ok).toBe(false)
+    expect(out.error).toMatch(/reason invalid/)
+  })
 })
