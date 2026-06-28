@@ -47,9 +47,6 @@ function isValidAnalysis(value) {
   return true;
 }
 
-// Supabase returns PGRST116 ("Results contain 0 rows") on a .single() miss.
-// We want to treat THAT as expected, but still surface real DB errors.
-const NOT_FOUND_CODE = 'PGRST116';
 
 export async function analyzeIngredients(imageFile) {
   const base64 = await fileToBase64(imageFile);
@@ -69,9 +66,9 @@ export async function analyzeIngredients(imageFile) {
       .from('scans')
       .select('flagged, scan_count')
       .eq('ingredient_hash', hash)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== NOT_FOUND_CODE) {
+    if (error) {
       // Real DB error (auth, network, schema). Don't pretend it's a cache
       // miss — surface to console so dev/Sentry sees it.
       console.error('[analyzeImage] cache lookup failed:', error);

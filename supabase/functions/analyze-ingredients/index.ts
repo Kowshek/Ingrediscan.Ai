@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.103.3"
+import { createClient } from "npm:@supabase/supabase-js@2"
 import {
   buildCorsHeaders,
   extractClientIp,
@@ -20,7 +19,7 @@ const FREE_SCAN_LIMIT = 3               // server-side enforcement (mirrors loca
 // stored version doesn't match the current one, we treat it as a cache miss
 // and re-analyse with the updated prompt. This prevents stale wrong answers
 // from being served forever after a prompt fix.
-const PROMPT_VERSION = "v4"
+const PROMPT_VERSION = "v7"
 
 // ── Token pricing (claude-haiku-4-5) — USD per million tokens ─────────────
 // Source: https://www.anthropic.com/pricing
@@ -146,14 +145,14 @@ Food:
 - Refined rice flour, polished white rice flour when used in bulk quantities
 - Cornflour / corn flour when used as a minor thickener (not primary bulk ingredient)
 - Table sugar (sucrose), cane sugar, raw sugar, brown sugar, jaggery, jaggery powder, khandsari — glycaemic load with daily use
-- Salt (sodium chloride) when listed prominently or as a primary flavour ingredient in snacks and condiments
+- Salt (sodium chloride) in any packaged snack, noodle, instant food, chip, processed food, or condiment — flag as caution if it appears in the first 75% of the ingredient list (i.e. it is not a trace ingredient); safe only if it appears in the last 25% of the list
 - Liquid sweeteners as minor ingredients: liquid glucose, glucose syrup, corn syrup, dextrose, fructose, invert sugar, golden syrup, rice syrup, agave syrup
 - Processed starches as minor thickeners: maltodextrin, modified starch, modified corn starch, modified tapioca starch, wheat starch, pregelatinised starch, acetylated starch
 - Refined vegetable oils without source specification: "edible vegetable oil", "refined vegetable oil", "cooking oil", "vegetable fat" — may conceal low-quality refined or palm-based oils
+- Coconut oil, coconut fat, virgin coconut oil — ~92% saturated fat; fine as a minor ingredient but a significant saturated fat load when appearing in the first half of a packaged food ingredient list
 - Interesterified fat, interesterified vegetable fat — processed fat with unclear long-term metabolic profile
 - Disodium phosphate, trisodium phosphate, sodium hexametaphosphate — kidney burden with chronic daily exposure
 - Sodium aluminium phosphate, alum (potassium aluminium sulphate) — aluminium accumulation risk
-- Excessive sodium chloride (salt) when listed as a primary ingredient in snacks or condiments
 Cosmetics / personal care:
 - Silicones: dimethicone, cyclomethicone, cyclopentasiloxane, polydimethylsiloxane — occlusive, may build up on skin with long-term daily use
 - Mineral oil, petrolatum, paraffin — petroleum-derived occlusives, potential pore-clogging with daily use
@@ -360,7 +359,7 @@ async function incrementIpScanCount(
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────
-serve(async (req) => {
+Deno.serve(async (req) => {
   const requestId = crypto.randomUUID()
   const origin = req.headers.get("origin")
   const cors = buildCorsHeaders(origin)
@@ -538,7 +537,7 @@ serve(async (req) => {
     // This cuts per-scan cost by ~55% after the first call.
     const claudeBody = JSON.stringify({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 1024,
+      max_tokens: 4096,
       system: [
         {
           type: "text",
@@ -649,6 +648,48 @@ serve(async (req) => {
         { error: "Analysis failed. Please try again." },
         { status: 502, corsHeaders: cors.headers },
       )
+    }
+
+    // ── 5b. Server-side positional weighting enforcement ──────────────────
+    // Claude misapplies the prompt's positional weighting rule often enough
+    // that we enforce it deterministically here. CAUTION ingredients that fall
+    // in the last 25% of the ingredient list are always moved to trace_ingredients[],
+    // regardless of what Claude returned. HARMFUL and MODERATE are never moved.
+    if (!validated.value.error) {
+      const allIngs = (validated.value.all_ingredients ?? []) as string[]
+      const N = allIngs.length
+      if (N >= 4) {
+        const threshold = 0.75 * N // P > threshold → last 25%
+        const posMap = new Map<string, number>()
+        allIngs.forEach((name, idx) => posMap.set(name.toLowerCase().trim(), idx + 1))
+
+        const keep: typeof validated.value.ingredients = []
+        const promoted: typeof validated.value.trace_ingredients = []
+
+        for (const ing of (validated.value.ingredients ?? [])) {
+          if (ing.status === 'caution') {
+            const pos = posMap.get(ing.name.toLowerCase().trim()) ?? -1
+            if (pos > 0 && pos > threshold) {
+              promoted.push({
+                ...ing,
+                status: 'caution' as const,
+                reason: 'Present in small amounts — minimal concern at this quantity',
+              })
+              continue
+            }
+          }
+          keep.push(ing)
+        }
+
+        if (promoted.length > 0) {
+          console.log(`[${requestId}] positional weighting: moved ${promoted.length} caution item(s) to trace`)
+          validated.value.ingredients = keep
+          validated.value.trace_ingredients = [
+            ...(validated.value.trace_ingredients ?? []),
+            ...promoted,
+          ]
+        }
+      }
     }
 
     // ── 6. Persist result + increment IP scan count ────────────────────────
