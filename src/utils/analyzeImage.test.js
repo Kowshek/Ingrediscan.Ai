@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock supabase BEFORE importing the unit under test.
 // We model the chained query builder so the test mirrors real usage.
-const mockSingle = vi.fn()
-const mockEq = vi.fn(() => ({ single: mockSingle }))
+const mockMaybeSingle = vi.fn()
+const mockEq = vi.fn(() => ({ maybeSingle: mockMaybeSingle }))
 const mockSelect = vi.fn(() => ({ eq: mockEq }))
 const mockInsert = vi.fn(() => ({ then: (cb) => cb({ error: null }) }))
 const mockUpdateThen = vi.fn((cb) => cb({ error: null }))
@@ -40,7 +40,7 @@ beforeEach(() => {
 
 describe('analyzeIngredients — cache path', () => {
   it('returns cached result without calling the Edge Function on a hit', async () => {
-    mockSingle.mockResolvedValueOnce({
+    mockMaybeSingle.mockResolvedValueOnce({
       data: {
         flagged: {
           score: 8,
@@ -61,7 +61,7 @@ describe('analyzeIngredients — cache path', () => {
   })
 
   it('normalizes legacy cache shape that uses "flagged" instead of "ingredients"', async () => {
-    mockSingle.mockResolvedValueOnce({
+    mockMaybeSingle.mockResolvedValueOnce({
       data: {
         flagged: {
           score: 4,
@@ -82,7 +82,7 @@ describe('analyzeIngredients — cache path', () => {
 
 describe('analyzeIngredients — cache miss → Edge Function', () => {
   it('calls Edge Function and persists fresh result on cache miss', async () => {
-    mockSingle.mockResolvedValueOnce({ data: null })
+    mockMaybeSingle.mockResolvedValueOnce({ data: null })
 
     global.fetch.mockResolvedValueOnce({
       ok: true,
@@ -104,7 +104,7 @@ describe('analyzeIngredients — cache miss → Edge Function', () => {
   })
 
   it('throws a user-friendly error when Edge Function returns non-OK', async () => {
-    mockSingle.mockResolvedValueOnce({ data: null })
+    mockMaybeSingle.mockResolvedValueOnce({ data: null })
     global.fetch.mockResolvedValueOnce({
       ok: false,
       json: async () => ({ error: 'Too many requests. Please wait a moment.' }),
@@ -114,7 +114,7 @@ describe('analyzeIngredients — cache miss → Edge Function', () => {
   })
 
   it('throws when Edge Function returns malformed payload (no score)', async () => {
-    mockSingle.mockResolvedValueOnce({ data: null })
+    mockMaybeSingle.mockResolvedValueOnce({ data: null })
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ ingredients: [] }), // missing score
@@ -124,7 +124,7 @@ describe('analyzeIngredients — cache miss → Edge Function', () => {
   })
 
   it('throws when Edge Function returns embedded error key', async () => {
-    mockSingle.mockResolvedValueOnce({ data: null })
+    mockMaybeSingle.mockResolvedValueOnce({ data: null })
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ error: 'Medicine scanning not supported.' }),
